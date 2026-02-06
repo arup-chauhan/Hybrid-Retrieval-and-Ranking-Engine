@@ -8,8 +8,8 @@ A resource-efficient system for **hybrid lexical + semantic retrieval**, powered
 
 - [Project Overview](#project-overview)
 - [Features](#features)
-- [Real-World Applications](#real-world-applications)
 - [System Architecture](#system-architecture)
+- [Real-World Applications](#real-world-applications)
 - [Installation](#installation)
 - [Usage](#usage)
 - [API Endpoints](#api-endpoints)
@@ -57,6 +57,12 @@ Validated on **500K+ product records**, achieving **sub-200ms response times** f
 
 ---
 
+## **System Architecture**
+
+![Hybrid System Architecture](design_diagrams/Hybrid.jpg)
+
+---
+
 ## **Real-World Applications**
 
 ### **1. E-Commerce & Retail**
@@ -78,31 +84,6 @@ Validated on **500K+ product records**, achieving **sub-200ms response times** f
 
 - Power **FAQ and KB search** with semantic matching.
 - Reduce **failed queries** caused by synonym mismatch.
-
----
-
-## **System Architecture**
-
-```plaintext
-[ User Query ]
-      |
-      v
-[ Query Router ]
-      |
-  +---+-------------+
-  |                 |
-[ SolrCloud (BM25) ]   [ pgvector + Ollama ]
-  |                 |
-  +--------+--------+
-           v
-[ Hybrid Ranking Layer ]
-           |
-           v
-[ API Layer (REST/gRPC) ]
-           |
-           v
-[ Search Results ]
-```
 
 ---
 
