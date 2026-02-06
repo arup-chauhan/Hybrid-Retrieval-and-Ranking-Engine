@@ -44,6 +44,11 @@ Validated on **500K+ product records**, achieving **sub-200ms response times** f
 - **Ollama** for local/self-hosted embeddings.
 - **Kubernetes (minikube first)** for local production-like deployment.
 
+### **Operating Envelope**
+
+- Committed scale target: **500K documents**.
+- Committed latency target: **p95 < 200ms** for hybrid search (under defined benchmark load).
+
 ---
 
 ## **Features**
@@ -295,8 +300,35 @@ flowchart TD
 
 ## **Benchmarking**
 
+The engine is targeted for a committed operating point of **500K documents** with **p95 < 200ms** latency under defined benchmark load.  
+
 The engine was validated on a dataset of **500K+ product records** with SolrCloud (3-node) and PostgreSQL + pgvector.
 Queries were measured under a mixed workload (keyword + semantic filters).
+
+### **Benchmark Spec (Committed)**
+
+| Parameter | Target |
+| --------- | ------ |
+| Dataset size | 500,000 documents |
+| Query mix | 70% lexical+semantic hybrid, 20% lexical-heavy, 10% semantic-heavy |
+| Concurrency | 20 virtual users |
+| Sustained load | 10-15 QPS |
+| Warmup | 5 minutes |
+| Measurement window | 15 minutes |
+| Result set size | top-k = 20 |
+| Cache policy for SLO check | Warm cache run required; cold cache run reported separately |
+| Latency SLO | p95 < 200ms end-to-end hybrid search |
+| Error budget | <1% non-2xx responses/timeouts |
+
+### **Latency Budget (Per Request)**
+
+| Stage | Budget |
+| ----- | ------ |
+| Query embedding generation (Ollama) | <= 60ms |
+| SolrCloud BM25 retrieval | <= 50ms |
+| pgvector retrieval | <= 50ms |
+| Merge/ranking/serialization overhead | <= 40ms |
+| **Total (p95 target)** | **<= 200ms** |
 
 ### **Latency (ms)**
 
