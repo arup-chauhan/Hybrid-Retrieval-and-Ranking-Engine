@@ -232,6 +232,16 @@ CREATE TABLE query_logs (
 
 ---
 
+### **Observability Assets**
+
+- Prometheus scrape config: `observability/prometheus/prometheus.yml`
+- Alerting rules: `observability/alerts/hybrid-alert-rules.yml`
+- Grafana datasource provisioning: `observability/grafana/datasources/prometheus-datasource.yaml`
+- Grafana dashboard provisioning: `observability/grafana/dashboards/dashboards.yaml`
+- Starter dashboard JSON: `observability/grafana/dashboards/hybrid-overview.json`
+
+---
+
 ### **Metrics Example (Java + Prometheus Client)**
 
 ```java

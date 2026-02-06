@@ -1,0 +1,20 @@
+groups:
+  - name: hybrid-search-slo
+    rules:
+      - alert: HybridSearchP95High
+        expr: histogram_quantile(0.95, sum(rate(http_server_requests_seconds_bucket{uri=~"/search.*"}[5m])) by (le)) > 0.2
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Hybrid search p95 latency above 200ms"
+          description: "p95 latency has been above 200ms for 10 minutes."
+
+      - alert: HybridSearchErrorRateHigh
+        expr: (sum(rate(http_server_requests_seconds_count{status=~"5.."}[5m])) / sum(rate(http_server_requests_seconds_count[5m]))) > 0.01
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Hybrid search error rate above 1%"
+          description: "5xx error ratio has exceeded 1% for 10 minutes."
