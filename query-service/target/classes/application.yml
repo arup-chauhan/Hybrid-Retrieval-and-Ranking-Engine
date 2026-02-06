@@ -1,0 +1,8 @@
+server:
+  port: 8083
+
+solr:
+  url: http://localhost:8983/solr/collection1
+
+vector:
+  url: http://localhost:8084

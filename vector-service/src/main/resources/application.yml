@@ -6,5 +6,14 @@ spring:
 
 vector:
   embedding:
-    provider: sentence-transformers
-    model: all-MiniLM-L6-v2
+    provider: ollama
+    model: nomic-embed-text
+  ollama:
+    base-url: http://ollama:11434
+
+postgres:
+  host: postgres
+  port: 5432
+  db: metadata_db
+  user: hybrid
+  password: hybrid123

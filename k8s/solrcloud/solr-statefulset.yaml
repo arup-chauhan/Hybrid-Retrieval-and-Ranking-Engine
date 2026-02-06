@@ -1,0 +1,26 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: solr
+spec:
+  serviceName: solr-headless
+  replicas: 1
+  selector:
+    matchLabels:
+      app: solr
+  template:
+    metadata:
+      labels:
+        app: solr
+    spec:
+      containers:
+        - name: solr
+          image: solr:9.4
+          args:
+            - solr-fg
+            - -c
+            - -z
+            - zookeeper:2181
+          ports:
+            - containerPort: 8983
+          # TODO: add probes, resources, and PVC.

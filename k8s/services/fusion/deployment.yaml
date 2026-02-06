@@ -1,0 +1,20 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fusion-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: fusion-service
+  template:
+    metadata:
+      labels:
+        app: fusion-service
+    spec:
+      containers:
+        - name: fusion-service
+          image: your-registry/fusion-service:latest
+          ports:
+            - containerPort: 8086
+          # TODO: wire env vars, probes, resources, and imagePullPolicy.

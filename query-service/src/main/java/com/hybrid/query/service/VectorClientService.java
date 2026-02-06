@@ -14,9 +14,11 @@ public class VectorClientService {
     }
 
     public String search(String query) {
-        return webClient.post()
-                .uri("/vector-search")
-                .bodyValue(query)
+        return webClient.get()
+                .uri(uriBuilder -> uriBuilder
+                        .path("/api/vector/search")
+                        .queryParam("query", query)
+                        .build())
                 .retrieve()
                 .bodyToMono(String.class)
                 .block();

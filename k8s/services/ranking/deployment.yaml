@@ -1,0 +1,20 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ranking-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ranking-service
+  template:
+    metadata:
+      labels:
+        app: ranking-service
+    spec:
+      containers:
+        - name: ranking-service
+          image: your-registry/ranking-service:latest
+          ports:
+            - containerPort: 8085
+          # TODO: wire env vars, probes, resources, and imagePullPolicy.

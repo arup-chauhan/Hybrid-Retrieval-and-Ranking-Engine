@@ -1,0 +1,20 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vector-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: vector-service
+  template:
+    metadata:
+      labels:
+        app: vector-service
+    spec:
+      containers:
+        - name: vector-service
+          image: your-registry/vector-service:latest
+          ports:
+            - containerPort: 8084
+          # TODO: wire env vars, probes, resources, and imagePullPolicy.

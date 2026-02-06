@@ -2,7 +2,7 @@ server:
   port: 8083
 
 solr:
-  url: http://localhost:8983/solr/collection1
+  url: http://solr:8983/solr/hybrid_core
 
 vector:
-  url: http://localhost:8084
+  url: http://vector-service:8084

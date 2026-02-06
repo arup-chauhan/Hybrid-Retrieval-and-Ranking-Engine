@@ -1,0 +1,17 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: ollama-pull-model
+spec:
+  template:
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: pull-model
+          image: curlimages/curl:8.7.1
+          command:
+            - /bin/sh
+            - -c
+            - |
+              # TODO: replace model with final choice, e.g. mxbai-embed-large.
+              curl -sS http://ollama:11434/api/pull -d '{"name":"nomic-embed-text"}'

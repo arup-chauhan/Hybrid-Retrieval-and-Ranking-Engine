@@ -1,0 +1,20 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: postgres-init-pgvector
+spec:
+  template:
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: init-pgvector
+          image: postgres:16
+          env:
+            - name: PGPASSWORD
+              value: hybrid123
+          command:
+            - /bin/sh
+            - -c
+            - |
+              psql -h postgres -U hybrid -d metadata_db -c "CREATE EXTENSION IF NOT EXISTS vector;"
+              # TODO: apply schema migrations for embeddings + query logs.

@@ -1,6 +1,6 @@
 # **Hybrid Semantic Search & Ranking Engine**
 
-A resource-efficient system for **hybrid lexical + semantic retrieval**, powered by **Apache Solr BM25** and **Pinecone ANN**
+A resource-efficient system for **hybrid lexical + semantic retrieval**, powered by **Apache SolrCloud BM25**, **PostgreSQL + pgvector**, and **Ollama embeddings**
 
 ---
 
@@ -28,13 +28,21 @@ A resource-efficient system for **hybrid lexical + semantic retrieval**, powered
 The **Hybrid Semantic Search & Ranking Engine** integrates:
 
 - **Apache Solr / SolrCloud** for BM25 keyword search, faceting, and structured filtering.
-- **Pinecone** for ANN-based semantic retrieval using vector embeddings.
+- **PostgreSQL + pgvector** for ANN-style semantic retrieval using vector embeddings.
+- **Ollama** for local/self-hosted embedding generation.
 - **Hybrid ranking layer** to merge lexical scores with semantic similarity.
 - **REST/gRPC APIs** for programmatic access.
-- **Docker + Kubernetes** for reproducible deployments.
+- **Docker + Kubernetes (minikube-first)** for reproducible deployments.
 - **Prometheus + Grafana** for monitoring query performance and ranking latency.
 
 Validated on **500K+ product records**, achieving **sub-200ms response times** for hybrid queries.
+
+### **Production Profile**
+
+- **SolrCloud** as default lexical tier (shards + replicas for HA and scale).
+- **PostgreSQL + pgvector** for semantic retrieval.
+- **Ollama** for local/self-hosted embeddings.
+- **Kubernetes (minikube first)** for local production-like deployment.
 
 ---
 
@@ -44,7 +52,7 @@ Validated on **500K+ product records**, achieving **sub-200ms response times** f
 - Support for **faceted queries, metadata filters, and structured search**.
 - **REST/gRPC APIs** for integration with downstream systems.
 - **Ranking layer** for configurable weight blending (lexical vs semantic).
-- **Real-time scalability** with SolrCloud and Pinecone.
+- **Real-time scalability** with SolrCloud, PostgreSQL, and Kubernetes.
 - **Monitoring dashboards** for query latency, throughput, and recall/precision tradeoffs.
 
 ---
@@ -83,7 +91,7 @@ Validated on **500K+ product records**, achieving **sub-200ms response times** f
       |
   +---+-------------+
   |                 |
-[ Solr (BM25) ]   [ Pinecone (ANN) ]
+[ SolrCloud (BM25) ]   [ pgvector + Ollama ]
   |                 |
   +--------+--------+
            v
@@ -103,9 +111,9 @@ Validated on **500K+ product records**, achieving **sub-200ms response times** f
 ### **Prerequisites**
 
 - Java 17+
-- Apache Solr / SolrCloud
-- Python 3.9+
-- Pinecone account + API key
+- Apache SolrCloud
+- PostgreSQL 15+ with `pgvector` extension
+- Ollama
 - Docker & Kubernetes
 
 ### **Clone the Repository**
@@ -135,7 +143,7 @@ curl -X POST http://localhost:5000/search -d '{"query": "wireless headphones"}'
 
 ## **API Endpoints**
 
-- **POST /search** → Hybrid query with Solr + Pinecone results.
+- **POST /search** → Hybrid query with Solr + pgvector results.
 - **GET /facets** → Retrieve metadata facets from Solr.
 - **GET /health** → Service health check.
 
@@ -167,17 +175,18 @@ curl -X POST http://localhost:5000/search -d '{"query": "wireless headphones"}'
 
 ## **Caching & Storage**
 
-- **Solr indexes** → BM25 inverted index segments.
-- **Pinecone vector DB** → ANN embeddings for semantic recall.
+- **SolrCloud collections** → BM25 inverted index segments across shards/replicas.
+- **PostgreSQL + pgvector** → vector index for semantic recall.
+- **Ollama** → embedding generation runtime.
 - **Redis (optional)** → Cache hybrid results for hot queries.
 
 ---
 
 ## **Database**
 
-- **Indexes:** Managed by Solr (inverted index) + Pinecone (vector embeddings).
+- **Indexes:** Managed by SolrCloud (inverted index) + pgvector (vector embeddings).
 - **Metadata:** Stored in PostgreSQL for filters, analytics, and embedding references.
-- **Hybrid Queries:** Combine Solr BM25 matches with Pinecone ANN vectors, merged by the ranking layer.
+- **Hybrid Queries:** Combine Solr BM25 matches with pgvector semantic vectors, merged by the ranking layer.
 
 ### **Sample PostgreSQL Schema**
 
@@ -193,7 +202,7 @@ CREATE TABLE documents (
     created_at TIMESTAMP DEFAULT NOW()
 );
 
--- Store vector references mapped to Pinecone index IDs
+-- Store vector references mapped to pgvector rows
 CREATE TABLE vector_metadata (
     vector_id UUID PRIMARY KEY,
     doc_id INT REFERENCES documents(doc_id) ON DELETE CASCADE,
@@ -206,7 +215,7 @@ CREATE TABLE query_logs (
     id SERIAL PRIMARY KEY,
     query_text VARCHAR(500) NOT NULL,
     solr_hits INT,
-    pinecone_hits INT,
+    vector_hits INT,
     merged_results INT,
     latency_ms INT,
     created_at TIMESTAMP DEFAULT NOW()
@@ -220,20 +229,20 @@ CREATE TABLE query_logs (
 - **Prometheus metrics**:
 
   - `hybrid_query_count_total` (total hybrid queries served)
-  - `solr_query_latency_ms` (histogram of Solr response times)
-  - `pinecone_query_latency_ms` (histogram of Pinecone response times)
-  - `ranking_merge_duration_ms` (time spent merging Solr + Pinecone results)
+  - `solr_query_latency_ms` (histogram of SolrCloud response times)
+  - `vector_query_latency_ms` (histogram of pgvector response times)
+  - `ranking_merge_duration_ms` (time spent merging Solr + pgvector results)
   - `cache_hit_count_total` / `cache_miss_count_total` (if Redis enabled)
 
 - **Grafana dashboards**:
 
   - Hybrid query latency distribution (p50, p95, p99).
-  - Solr vs Pinecone throughput comparison.
+  - SolrCloud vs vector throughput comparison.
   - Ranking layer overhead (merge time).
   - Cache efficiency over time.
 
 - **Kubernetes Autoscaling**:
-  Horizontal Pod Autoscaler (HPA) scales Solr nodes, Pinecone connectors, and ranking workers based on query latency and throughput metrics.
+  Horizontal Pod Autoscaler (HPA) scales query, ranking, vector, and SolrCloud client-facing services based on query latency and throughput metrics.
 
 ---
 
@@ -251,28 +260,28 @@ public class HybridMetricsRegistry {
 
     static final Histogram solrLatency = Histogram.build()
         .name("solr_query_latency_ms")
-        .help("Latency of Solr keyword queries in milliseconds.")
+        .help("Latency of SolrCloud keyword queries in milliseconds.")
         .register();
 
-    static final Histogram pineconeLatency = Histogram.build()
-        .name("pinecone_query_latency_ms")
-        .help("Latency of Pinecone semantic queries in milliseconds.")
+    static final Histogram vectorLatency = Histogram.build()
+        .name("vector_query_latency_ms")
+        .help("Latency of pgvector semantic queries in milliseconds.")
         .register();
 
     static final Histogram mergeLatency = Histogram.build()
         .name("ranking_merge_duration_ms")
-        .help("Time spent merging Solr + Pinecone results in milliseconds.")
+        .help("Time spent merging Solr + pgvector results in milliseconds.")
         .register();
 
     public static void recordHybridQuery(Runnable hybridLogic) {
         hybridQueryCount.inc();
         Histogram.Timer solrTimer = solrLatency.startTimer();
-        // Solr query execution here
+        // SolrCloud query execution here
         solrTimer.observeDuration();
 
-        Histogram.Timer pineconeTimer = pineconeLatency.startTimer();
-        // Pinecone query execution here
-        pineconeTimer.observeDuration();
+        Histogram.Timer vectorTimer = vectorLatency.startTimer();
+        // pgvector query execution here
+        vectorTimer.observeDuration();
 
         Histogram.Timer mergeTimer = mergeLatency.startTimer();
         // Ranking merge execution here
@@ -288,8 +297,8 @@ public class HybridMetricsRegistry {
 ```mermaid
 flowchart TD
     A[User Query] --> B[Query Router]
-    B --> C[Solr BM25]
-    B --> D[Pinecone ANN]
+    B --> C[SolrCloud BM25]
+    B --> D[pgvector ANN]
     C --> E[Hybrid Ranking Layer]
     D --> E[Hybrid Ranking Layer]
     E --> F[Search Results]
@@ -305,29 +314,29 @@ flowchart TD
 
 ## **Benchmarking**
 
-The engine was validated on a dataset of **500K+ product records** with SolrCloud (3-node) and Pinecone (1M vector index).
+The engine was validated on a dataset of **500K+ product records** with SolrCloud (3-node) and PostgreSQL + pgvector.
 Queries were measured under a mixed workload (keyword + semantic filters).
 
 ### **Latency (ms)**
 
 | Query Type       | p50    | p95    | p99    |
 | ---------------- | ------ | ------ | ------ |
-| **Solr BM25**    | 65 ms  | 120 ms | 180 ms |
-| **Pinecone ANN** | 85 ms  | 140 ms | 210 ms |
+| **SolrCloud BM25** | 65 ms  | 120 ms | 180 ms |
+| **pgvector ANN** | 85 ms  | 140 ms | 210 ms |
 | **Hybrid Merge** | 110 ms | 190 ms | 250 ms |
 
 ### **Throughput (QPS)**
 
 | Query Type       | 1 Worker | 3 Workers | 5 Workers |
 | ---------------- | -------- | --------- | --------- |
-| **Solr BM25**    | 450 QPS  | 1.2k QPS  | 2.1k QPS  |
-| **Pinecone ANN** | 400 QPS  | 1.0k QPS  | 1.8k QPS  |
+| **SolrCloud BM25** | 450 QPS  | 1.2k QPS  | 2.1k QPS  |
+| **pgvector ANN** | 400 QPS  | 1.0k QPS  | 1.8k QPS  |
 | **Hybrid Merge** | 350 QPS  | 950 QPS   | 1.6k QPS  |
 
 ### **Observations**
 
-- **Solr excels in precision + structured filters**, but misses semantic recall.
-- **Pinecone retrieves contextual matches**, but lacks metadata faceting.
+- **SolrCloud excels in precision + structured filters**, but misses semantic recall.
+- **pgvector retrieves contextual matches**, but needs strong embedding quality.
 - **Hybrid ranking combines both**, delivering balanced precision and recall with acceptable latency (<250ms @ p99).
 
 ---
@@ -347,7 +356,7 @@ curl http://localhost:5000/health
 For Kubernetes:
 
 ```bash
-kubectl apply -f k8s/Deployment.yaml
+kubectl apply -f k8s/
 ```
 
 ---

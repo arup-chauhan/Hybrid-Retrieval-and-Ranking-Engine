@@ -1,0 +1,28 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - solrcloud/zookeeper-service.yaml
+  - solrcloud/zookeeper-statefulset.yaml
+  - solrcloud/solr-headless-service.yaml
+  - solrcloud/solr-service.yaml
+  - solrcloud/solr-statefulset.yaml
+  - solrcloud/init-collection-job.yaml
+  - postgres/postgres-service.yaml
+  - postgres/postgres-statefulset.yaml
+  - postgres/init-pgvector-job.yaml
+  - ollama/ollama-service.yaml
+  - ollama/ollama-deployment.yaml
+  - ollama/pull-model-job.yaml
+  - redis/redis-service.yaml
+  - redis/redis-deployment.yaml
+  - services/query/service.yaml
+  - services/query/deployment.yaml
+  - services/vector/service.yaml
+  - services/vector/deployment.yaml
+  - services/ranking/service.yaml
+  - services/ranking/deployment.yaml
+  - services/fusion/service.yaml
+  - services/fusion/deployment.yaml
+  - services/gateway/service.yaml
+  - services/gateway/deployment.yaml

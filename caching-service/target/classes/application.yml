@@ -1,0 +1,7 @@
+server:
+  port: 8096
+
+spring:
+  redis:
+    host: redis
+    port: 6379

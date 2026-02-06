@@ -1,0 +1,28 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres
+spec:
+  serviceName: postgres
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres
+  template:
+    metadata:
+      labels:
+        app: postgres
+    spec:
+      containers:
+        - name: postgres
+          image: pgvector/pgvector:pg16
+          env:
+            - name: POSTGRES_USER
+              value: hybrid
+            - name: POSTGRES_PASSWORD
+              value: hybrid123
+            - name: POSTGRES_DB
+              value: metadata_db
+          ports:
+            - containerPort: 5432
+          # TODO: add PVC, probes, and secret-based credentials.

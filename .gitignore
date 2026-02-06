@@ -2,4 +2,6 @@
 /target/
 /logs/
 /*.iml
+/*.code-workspace
 TO-DO.md
+GAPS_TODO.md

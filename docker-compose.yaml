@@ -22,19 +22,25 @@ services:
   solr:
     image: solr:9.4
     container_name: solr
+    command: ["solr-fg", "-c", "-z", "zookeeper:2181"]
     ports:
       - "8983:8983"
     volumes:
       - ./indexing-service/solr/conf:/var/solr/data/conf
 
   postgres:
-    image: postgres:15
+    image: pgvector/pgvector:pg16
     environment:
       POSTGRES_USER: hybrid
       POSTGRES_PASSWORD: hybrid123
       POSTGRES_DB: metadata_db
     ports:
       - "5432:5432"
+
+  ollama:
+    image: ollama/ollama:latest
+    ports:
+      - "11434:11434"
 
   ingestion-service:
     build: ./ingestion-service
@@ -62,41 +68,44 @@ services:
   ranking-service:
     build: ./ranking-service
     ports:
-      - "8084:8084"
+      - "8085:8085"
 
   vector-service:
     build: ./vector-service
     ports:
-      - "8085:8085"
+      - "8084:8084"
+    depends_on:
+      - postgres
+      - ollama
 
   fusion-service:
     build: ./fusion-service
     ports:
-      - "8086:8086"
+      - "8087:8087"
 
   aggregation-service:
     build: ./aggregation-service
     ports:
-      - "8087:8087"
+      - "8086:8086"
 
   caching-service:
     build: ./caching-service
     ports:
-      - "8088:8088"
+      - "8096:8096"
     depends_on:
       - redis
 
   metadata-service:
     build: ./metadata-service
     ports:
-      - "8089:8089"
+      - "8095:8095"
     depends_on:
       - postgres
 
   gateway-service:
     build: ./gateway-service
     ports:
-      - "8090:8090"
+      - "9000:9000"
     depends_on:
       - query-service
       - fusion-service
@@ -105,12 +114,12 @@ services:
   monitoring-service:
     build: ./monitoring-service
     ports:
-      - "9091:9091"
+      - "9090:9090"
 
   orchestration-service:
     build: ./orchestration-service
     ports:
-      - "9092:9092"
+      - "8089:8089"
     depends_on:
       - gateway-service
 
