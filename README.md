@@ -1,382 +1,234 @@
 # **Hybrid Semantic Search & Ranking Engine**
 
-A resource-efficient system for **hybrid lexical + semantic retrieval**, powered by **Apache SolrCloud BM25**, **PostgreSQL + pgvector**, and **Ollama embeddings**
+A modular search platform that combines lexical retrieval and semantic retrieval in one query path, with service boundaries designed for distributed deployment.
 
 ---
 
 ## **Table of Contents**
 
 - [Project Overview](#project-overview)
-- [Features](#features)
-- [System Architecture](#system-architecture)
-- [Real-World Applications](#real-world-applications)
+- [System Layout](#system-layout)
+- [Service Topology](#service-topology)
+- [Current Status](#current-status)
+- [Repository Structure](#repository-structure)
 - [Installation](#installation)
-- [Usage](#usage)
-- [API Endpoints](#api-endpoints)
-- [Example Output](#example-output)
-- [Caching & Storage](#caching--storage)
-- [Database](#database)
-- [Monitoring & Scaling](#monitoring--scaling)
-- [Benchmarking](#benchmarking)
-- [Docker Deployment](#docker-deployment)
-- [Contributing](#contributing)
+- [Local Run](#local-run)
+- [APIs (Current)](#apis-current)
+- [Storage and Retrieval](#storage-and-retrieval)
+- [Observability](#observability)
+- [Benchmark Targets](#benchmark-targets)
+- [Kubernetes Assets](#kubernetes-assets)
+- [Roadmap Tracking](#roadmap-tracking)
 
 ---
 
 ## **Project Overview**
 
-The **Hybrid Semantic Search & Ranking Engine** integrates:
+This project implements a hybrid search architecture with separate services for ingestion, indexing, query execution, vector retrieval, ranking, fusion, aggregation, caching, metadata, gateway routing, orchestration, and monitoring.
 
-- **Apache Solr / SolrCloud** for BM25 keyword search, faceting, and structured filtering.
-- **PostgreSQL + pgvector** for ANN-style semantic retrieval using vector embeddings.
-- **Ollama** for local/self-hosted embedding generation.
-- **Hybrid ranking layer** to merge lexical scores with semantic similarity.
-- **REST/gRPC APIs** for programmatic access.
-- **Docker + Kubernetes (minikube-first)** for reproducible deployments.
-- **Prometheus + Grafana** for monitoring query performance and ranking latency.
+Core design choices in the codebase:
 
-Validated on **500K+ product records**, achieving **sub-200ms response times** for hybrid queries.
-
-### **Production Profile**
-
-- **SolrCloud** as default lexical tier (shards + replicas for HA and scale).
-- **PostgreSQL + pgvector** for semantic retrieval.
-- **Ollama** for local/self-hosted embeddings.
-- **Kubernetes (minikube first)** for local production-like deployment.
-
-### **Operating Envelope**
-
-- Committed scale target: **500K documents**.
-- Committed latency target: **p95 < 200ms** for hybrid search (under defined benchmark load).
+- Lexical retrieval path on **SolrCloud**.
+- Semantic retrieval path on **PostgreSQL + pgvector** with **Ollama** as embedding provider.
+- Hybrid merge/ranking kept in the application layer.
+- Event-driven ingestion/indexing path using Kafka.
+- Container-first runtime (`docker-compose.yaml`) and Kubernetes manifests (`k8s/`).
 
 ---
 
-## **Features**
-
-- Hybrid search: **BM25 precision + ANN semantic recall**.
-- Support for **faceted queries, metadata filters, and structured search**.
-- **REST/gRPC APIs** for integration with downstream systems.
-- **Ranking layer** for configurable weight blending (lexical vs semantic).
-- **Real-time scalability** with SolrCloud, PostgreSQL, and Kubernetes.
-- **Monitoring dashboards** for query latency, throughput, and recall/precision tradeoffs.
-
----
-
-## **System Architecture**
+## **System Layout**
 
 ![Hybrid System Architecture](design_diagrams/Hybrid.jpg)
 
+Execution model (high level):
+
+1. Documents are ingested and published to Kafka.
+2. Indexing service consumes events and updates lexical/storage layers.
+3. Query service fans out to lexical and semantic services.
+4. Ranking/fusion stages combine signals into final result payloads.
+5. Gateway, caching, and monitoring services provide edge/runtime support.
+
 ---
 
-## **Real-World Applications**
+## **Service Topology**
 
-### **1. E-Commerce & Retail**
+Application services (Maven modules):
 
-- Search across millions of **products** with semantic + keyword ranking.
-- Filter by **brand, category, or attributes** seamlessly.
+- `ingestion-service`
+- `indexing-service`
+- `query-service`
+- `vector-service`
+- `ranking-service`
+- `fusion-service`
+- `aggregation-service`
+- `caching-service`
+- `metadata-service`
+- `gateway-service`
+- `monitoring-service`
+- `orchestration-service`
 
-### **2. Enterprise Knowledge Bases**
+Runtime dependencies present in deployment assets:
 
-- Semantic retrieval across **contracts, policies, and manuals**.
-- Combine keyword filters with contextual understanding.
+- Kafka (event transport)
+- SolrCloud cluster services
+- PostgreSQL (`pgvector` image)
+- Redis
+- Ollama
 
-### **3. Media & Publishing**
+---
 
-- Blend **tags, categories, and semantic context** for content discovery.
-- Deliver **personalized search** at scale.
+## **Current Status**
 
-### **4. Customer Support**
+Implemented in repository:
 
-- Power **FAQ and KB search** with semantic matching.
-- Reduce **failed queries** caused by synonym mismatch.
+- Multi-service project structure with per-service Dockerfiles and root multi-module Maven build.
+- Query endpoint skeleton with Solr + vector fan-out.
+- Vector service API surface and placeholder vector search response.
+- Gateway global filter hook and fallback endpoint.
+- Monitoring service with Prometheus exposure config and initial metric wiring.
+- Kubernetes resources for SolrCloud stack, Postgres, Ollama, Redis, and core services.
+- Observability assets for Prometheus/Grafana provisioning and alert rules.
+
+Planned / in-progress (tracked in backlog docs):
+
+- Production hybrid merge/ranking logic in query path.
+- Real ANN retrieval implementation over `pgvector` + Ollama embeddings.
+- Facets API, gRPC layer, JWT validation, richer metrics, persistence wiring, and benchmark guardrails.
+
+---
+
+## **Repository Structure**
+
+Key top-level files and directories:
+
+- `README.md` - architecture and runtime overview.
+- `GAPS_TODO.md` - implementation gap list aligned to targets.
+- `TO-DO.md` - execution checklist grouped by workstream.
+- `docker-compose.yaml` - local multi-service runtime.
+- `k8s/` - Kubernetes manifests for services and stateful dependencies.
+- `observability/` - Prometheus, Grafana, and alerting assets.
 
 ---
 
 ## **Installation**
 
-### **Prerequisites**
+Prerequisites:
 
 - Java 17+
-- Apache SolrCloud
-- PostgreSQL 15+ with `pgvector` extension
-- Ollama
-- Docker & Kubernetes
+- Maven 3.9+
+- Docker + Docker Compose
+- Kubernetes (optional, `minikube`-first path)
 
-### **Clone the Repository**
+Clone and build:
 
 ```bash
 git clone https://github.com/Arup-Chauhan/Hybrid-Semantic-Search-and-Ranking-Engine.git
 cd Hybrid-Semantic-Search-and-Ranking-Engine
-```
-
-### **Build**
-
-```bash
 mvn clean package
 ```
 
 ---
 
-## **Usage**
+## **Local Run**
 
-### **Send a Query**
-
-```bash
-curl -X POST http://localhost:5000/search -d '{"query": "wireless headphones"}'
-```
-
----
-
-## **API Endpoints**
-
-- **POST /search** → Hybrid query with Solr + pgvector results.
-- **GET /facets** → Retrieve metadata facets from Solr.
-- **GET /health** → Service health check.
-
----
-
-## **Example Output**
-
-**Hybrid Search Response:**
-
-```json
-{
-  "query": "wireless headphones",
-  "results": [
-    {
-      "id": "123",
-      "title": "Sony WH-1000XM5 Wireless Headphones",
-      "score": 0.92
-    },
-    {
-      "id": "456",
-      "title": "Bose QC45 Noise Cancelling Headphones",
-      "score": 0.87
-    }
-  ]
-}
-```
-
----
-
-## **Caching & Storage**
-
-- **SolrCloud collections** → BM25 inverted index segments across shards/replicas.
-- **PostgreSQL + pgvector** → vector index for semantic recall.
-- **Ollama** → embedding generation runtime.
-- **Redis (optional)** → Cache hybrid results for hot queries.
-
----
-
-## **Database**
-
-- **Indexes:** Managed by SolrCloud (inverted index) + pgvector (vector embeddings).
-- **Metadata:** Stored in PostgreSQL for filters, analytics, and embedding references.
-- **Hybrid Queries:** Combine Solr BM25 matches with pgvector semantic vectors, merged by the ranking layer.
-
-### **Sample PostgreSQL Schema**
-
-```sql
--- Product / Document metadata
-CREATE TABLE documents (
-    doc_id SERIAL PRIMARY KEY,
-    title VARCHAR(255) NOT NULL,
-    description TEXT,
-    brand VARCHAR(100),
-    category VARCHAR(100),
-    price NUMERIC(10,2),
-    created_at TIMESTAMP DEFAULT NOW()
-);
-
--- Store vector references mapped to pgvector rows
-CREATE TABLE vector_metadata (
-    vector_id UUID PRIMARY KEY,
-    doc_id INT REFERENCES documents(doc_id) ON DELETE CASCADE,
-    embedding_model VARCHAR(100),
-    created_at TIMESTAMP DEFAULT NOW()
-);
-
--- Log query executions for analysis
-CREATE TABLE query_logs (
-    id SERIAL PRIMARY KEY,
-    query_text VARCHAR(500) NOT NULL,
-    solr_hits INT,
-    vector_hits INT,
-    merged_results INT,
-    latency_ms INT,
-    created_at TIMESTAMP DEFAULT NOW()
-);
-```
-
----
-
-## **Monitoring & Scaling**
-
-- **Prometheus metrics**:
-
-  - `hybrid_query_count_total` (total hybrid queries served)
-  - `solr_query_latency_ms` (histogram of SolrCloud response times)
-  - `vector_query_latency_ms` (histogram of pgvector response times)
-  - `ranking_merge_duration_ms` (time spent merging Solr + pgvector results)
-  - `cache_hit_count_total` / `cache_miss_count_total` (if Redis enabled)
-
-- **Grafana dashboards**:
-
-  - Hybrid query latency distribution (p50, p95, p99).
-  - SolrCloud vs vector throughput comparison.
-  - Ranking layer overhead (merge time).
-  - Cache efficiency over time.
-
-- **Kubernetes Autoscaling**:
-  Horizontal Pod Autoscaler (HPA) scales query, ranking, vector, and SolrCloud client-facing services based on query latency and throughput metrics.
-
----
-
-### **Observability Assets**
-
-- Prometheus scrape config: `observability/prometheus/prometheus.yml`
-- Alerting rules: `observability/alerts/hybrid-alert-rules.yml`
-- Grafana datasource provisioning: `observability/grafana/datasources/prometheus-datasource.yaml`
-- Grafana dashboard provisioning: `observability/grafana/dashboards/dashboards.yaml`
-- Starter dashboard JSON: `observability/grafana/dashboards/hybrid-overview.json`
-
----
-
-### **Metrics Example (Java + Prometheus Client)**
-
-```java
-import io.prometheus.client.Counter;
-import io.prometheus.client.Histogram;
-
-public class HybridMetricsRegistry {
-    static final Counter hybridQueryCount = Counter.build()
-        .name("hybrid_query_count_total")
-        .help("Total number of hybrid search queries.")
-        .register();
-
-    static final Histogram solrLatency = Histogram.build()
-        .name("solr_query_latency_ms")
-        .help("Latency of SolrCloud keyword queries in milliseconds.")
-        .register();
-
-    static final Histogram vectorLatency = Histogram.build()
-        .name("vector_query_latency_ms")
-        .help("Latency of pgvector semantic queries in milliseconds.")
-        .register();
-
-    static final Histogram mergeLatency = Histogram.build()
-        .name("ranking_merge_duration_ms")
-        .help("Time spent merging Solr + pgvector results in milliseconds.")
-        .register();
-
-    public static void recordHybridQuery(Runnable hybridLogic) {
-        hybridQueryCount.inc();
-        Histogram.Timer solrTimer = solrLatency.startTimer();
-        // SolrCloud query execution here
-        solrTimer.observeDuration();
-
-        Histogram.Timer vectorTimer = vectorLatency.startTimer();
-        // pgvector query execution here
-        vectorTimer.observeDuration();
-
-        Histogram.Timer mergeTimer = mergeLatency.startTimer();
-        // Ranking merge execution here
-        mergeTimer.observeDuration();
-    }
-}
-```
-
----
-
-### **Metrics Flow Diagram**
-
-```mermaid
-flowchart TD
-    A[User Query] --> B[Query Router]
-    B --> C[SolrCloud BM25]
-    B --> D[pgvector ANN]
-    C --> E[Hybrid Ranking Layer]
-    D --> E[Hybrid Ranking Layer]
-    E --> F[Search Results]
-
-    %% Metrics Collection
-    C -->|Latency, request count| G[Prometheus Metrics]
-    D -->|Latency, request count| G[Prometheus Metrics]
-    E -->|Merge time, hybrid query count| G[Prometheus Metrics]
-    G --> H[Grafana Dashboards]
-```
-
----
-
-## **Benchmarking**
-
-The engine is targeted for a committed operating point of **500K documents** with **p95 < 200ms** latency under defined benchmark load.  
-
-The engine was validated on a dataset of **500K+ product records** with SolrCloud (3-node) and PostgreSQL + pgvector.
-Queries were measured under a mixed workload (keyword + semantic filters).
-
-### **Benchmark Spec (Committed)**
-
-| Parameter | Target |
-| --------- | ------ |
-| Dataset size | 500,000 documents |
-| Query mix | 70% lexical+semantic hybrid, 20% lexical-heavy, 10% semantic-heavy |
-| Concurrency | 20 virtual users |
-| Sustained load | 10-15 QPS |
-| Warmup | 5 minutes |
-| Measurement window | 15 minutes |
-| Result set size | top-k = 20 |
-| Cache policy for SLO check | Warm cache run required; cold cache run reported separately |
-| Latency SLO | p95 < 200ms end-to-end hybrid search |
-| Error budget | <1% non-2xx responses/timeouts |
-
-### **Latency Budget (Per Request)**
-
-| Stage | Budget |
-| ----- | ------ |
-| Query embedding generation (Ollama) | <= 60ms |
-| SolrCloud BM25 retrieval | <= 50ms |
-| pgvector retrieval | <= 50ms |
-| Merge/ranking/serialization overhead | <= 40ms |
-| **Total (p95 target)** | **<= 200ms** |
-
-### **Latency (ms)**
-
-| Query Type       | p50    | p95    | p99    |
-| ---------------- | ------ | ------ | ------ |
-| **SolrCloud BM25** | 65 ms  | 120 ms | 180 ms |
-| **pgvector ANN** | 85 ms  | 140 ms | 210 ms |
-| **Hybrid Merge** | 110 ms | 190 ms | 250 ms |
-
-### **Throughput (QPS)**
-
-| Query Type       | 1 Worker | 3 Workers | 5 Workers |
-| ---------------- | -------- | --------- | --------- |
-| **SolrCloud BM25** | 450 QPS  | 1.2k QPS  | 2.1k QPS  |
-| **pgvector ANN** | 400 QPS  | 1.0k QPS  | 1.8k QPS  |
-| **Hybrid Merge** | 350 QPS  | 950 QPS   | 1.6k QPS  |
-
-### **Observations**
-
-- **SolrCloud excels in precision + structured filters**, but misses semantic recall.
-- **pgvector retrieves contextual matches**, but needs strong embedding quality.
-- **Hybrid ranking combines both**, delivering balanced precision and recall with acceptable latency (<250ms @ p99).
-
----
-
-## **Docker Deployment**
+Start the stack:
 
 ```bash
 docker-compose up --build
 ```
 
-Verify:
+Run in background:
 
 ```bash
-curl http://localhost:5000/health
+docker-compose up --build -d
 ```
 
-For Kubernetes:
+Stop:
+
+```bash
+docker-compose down
+```
+
+---
+
+## **APIs (Current)**
+
+Endpoints currently visible in code:
+
+- `POST /search` (query service)
+  - File: `query-service/src/main/java/com/hybrid/query/controller/QueryController.java`
+- `GET /api/vector/search` (vector service)
+  - File: `vector-service/src/main/java/com/hybrid/vector/controller/VectorController.java`
+- `POST /api/ingest` (ingestion service)
+  - File: `ingestion-service/src/main/java/com/hybrid/ingestion/controller/IngestionController.java`
+- `POST /api/rank` (ranking service)
+  - File: `ranking-service/src/main/java/com/hybrid/ranking/controller/RankingController.java`
+- `POST /api/fusion/combine` (fusion service)
+  - File: `fusion-service/src/main/java/com/hybrid/fusion/controller/FusionController.java`
+
+Example request (query service direct):
+
+```bash
+curl -X POST http://localhost:8083/search \
+  -H "Content-Type: application/json" \
+  -d '{"query":"wireless headphones"}'
+```
+
+---
+
+## **Storage and Retrieval**
+
+- Lexical index path: Solr collections.
+- Semantic path: PostgreSQL + `pgvector`.
+- Query result caching: Redis-backed cache service.
+- Metadata path: metadata service + repository layer.
+
+Schema intent (tracked in docs/backlog):
+
+- Document metadata table.
+- Vector metadata linkage.
+- Query log table for latency/hit analysis.
+
+---
+
+## **Observability**
+
+Checked-in assets:
+
+- Prometheus scrape config: `observability/prometheus/prometheus.yml`
+- Alert rules: `observability/alerts/hybrid-alert-rules.yml`
+- Grafana datasource provisioning: `observability/grafana/datasources/prometheus-datasource.yaml`
+- Grafana dashboard provisioning: `observability/grafana/dashboards/dashboards.yaml`
+- Starter dashboard: `observability/grafana/dashboards/hybrid-overview.json`
+
+Current implementation note:
+
+- Basic metric wiring exists; full stage-level hybrid SLI coverage is tracked in `GAPS_TODO.md`.
+
+---
+
+## **Benchmark Targets**
+
+Committed operating targets:
+
+- Scale target: `500K` documents.
+- Latency target: `p95 < 200ms` for hybrid search under defined load.
+
+Performance guardrails and repeatable benchmark automation are tracked as open work in `GAPS_TODO.md`.
+
+---
+
+## **Kubernetes Assets**
+
+Kubernetes resources are organized under `k8s/` for:
+
+- SolrCloud services/stateful sets and collection init job.
+- Postgres and extension bootstrap job.
+- Ollama deployment and model pull job.
+- Redis deployment/service.
+- Core application service deployments/services.
+
+Apply manifests:
 
 ```bash
 kubectl apply -f k8s/
@@ -384,6 +236,11 @@ kubectl apply -f k8s/
 
 ---
 
-## **Contributing**
+## **Roadmap Tracking**
 
-Big on contributions! Open a PR to improve ranking strategies, embeddings integration, or system scalability.
+Backlog and execution order are documented in:
+
+- `GAPS_TODO.md` for implementation gaps and blockers.
+- `TO-DO.md` for phased delivery checklist.
+
+These files should be treated as the source of truth for what is complete vs planned.
