@@ -1,4 +1,4 @@
-# **Hybrid Semantic Search & Ranking Engine**
+# **Hybrid Retrieval and Ranking Engine**
 
 A modular search platform that combines lexical retrieval and semantic retrieval in one query path, with service boundaries designed for distributed deployment.
 
@@ -102,8 +102,6 @@ Planned / in-progress (tracked in backlog docs):
 Key top-level files and directories:
 
 - `README.md` - architecture and runtime overview.
-- `GAPS_TODO.md` - implementation gap list aligned to targets.
-- `TO-DO.md` - execution checklist grouped by workstream.
 - `docker-compose.yaml` - local multi-service runtime.
 - `k8s/` - Kubernetes manifests for services and stateful dependencies.
 - `observability/` - Prometheus, Grafana, and alerting assets.
@@ -122,8 +120,8 @@ Prerequisites:
 Clone and build:
 
 ```bash
-git clone https://github.com/Arup-Chauhan/Hybrid-Semantic-Search-and-Ranking-Engine.git
-cd Hybrid-Semantic-Search-and-Ranking-Engine
+git clone https://github.com/Arup-Chauhan/Hybrid-Retrieval-and-Ranking-Engine.git Hybrid-Retrieval-and-Ranking-Engine
+cd Hybrid-Retrieval-and-Ranking-Engine
 mvn clean package
 ```
 
@@ -203,7 +201,7 @@ Checked-in assets:
 
 Current implementation note:
 
-- Basic metric wiring exists; full stage-level hybrid SLI coverage is tracked in `GAPS_TODO.md`.
+- Basic metric wiring exists; full stage-level hybrid SLI coverage remains planned work.
 
 ---
 
@@ -214,7 +212,7 @@ Committed operating targets:
 - Scale target: `500K` documents.
 - Latency target: `p95 < 200ms` for hybrid search under defined load.
 
-Performance guardrails and repeatable benchmark automation are tracked as open work in `GAPS_TODO.md`.
+Performance guardrails and repeatable benchmark automation remain open work.
 
 ---
 
@@ -238,9 +236,4 @@ kubectl apply -f k8s/
 
 ## **Roadmap Tracking**
 
-Backlog and execution order are documented in:
-
-- `GAPS_TODO.md` for implementation gaps and blockers.
-- `TO-DO.md` for phased delivery checklist.
-
-These files should be treated as the source of truth for what is complete vs planned.
+Backlog and execution order are maintained internally and updated as implementation milestones are completed.

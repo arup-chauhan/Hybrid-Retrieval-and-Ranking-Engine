@@ -1,4 +1,4 @@
-# Global Makefile for Hybrid Semantic Search & Ranking Engine
+# Global Makefile for Hybrid Retrieval and Ranking Engine
 
 .PHONY: build up down clean logs
 
