@@ -9,10 +9,23 @@ spec:
       containers:
         - name: init-collection
           image: solr:9.4
+          env:
+            - name: SOLR_COLLECTION
+              value: hybrid_collection
+            - name: SOLR_CONFIG
+              value: hybrid_conf
+            - name: SOLR_SHARDS
+              value: "1"
+            - name: SOLR_REPLICAS
+              value: "1"
           command:
             - /bin/sh
             - -c
             - |
-              # TODO: set shards/replicas via env vars and make idempotent.
-              solr zk upconfig -n hybrid_conf -d /opt/solr/server/solr/configsets/_default/conf -z zookeeper:2181 || true
-              solr create_collection -c hybrid_core -shards 1 -replicationFactor 1 -z zookeeper:2181 || true
+              set -e
+              solr zk upconfig -n "${SOLR_CONFIG}" -d /opt/solr/server/solr/configsets/_default/conf -z zookeeper:2181 || true
+              if solr api -get "http://solr:8983/solr/admin/collections?action=LIST&wt=json" | grep -q "\"${SOLR_COLLECTION}\""; then
+                echo "Collection ${SOLR_COLLECTION} already exists; skipping create."
+              else
+                solr create_collection -c "${SOLR_COLLECTION}" -shards "${SOLR_SHARDS}" -replicationFactor "${SOLR_REPLICAS}" -z zookeeper:2181
+              fi

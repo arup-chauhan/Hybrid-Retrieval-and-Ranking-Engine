@@ -1,0 +1,5 @@
+/Users/arup/Documents/Projects/Individual Projects/Hybrid-Retrieval-and-Ranking-Engine/ingestion-service/src/main/java/com/hybrid/ingestion/config/KafkaProducerConfig.java
+/Users/arup/Documents/Projects/Individual Projects/Hybrid-Retrieval-and-Ranking-Engine/ingestion-service/src/main/java/com/hybrid/ingestion/controller/IngestionController.java
+/Users/arup/Documents/Projects/Individual Projects/Hybrid-Retrieval-and-Ranking-Engine/ingestion-service/src/main/java/com/hybrid/ingestion/IngestionApplication.java
+/Users/arup/Documents/Projects/Individual Projects/Hybrid-Retrieval-and-Ranking-Engine/ingestion-service/src/main/java/com/hybrid/ingestion/model/DocumentRequest.java
+/Users/arup/Documents/Projects/Individual Projects/Hybrid-Retrieval-and-Ranking-Engine/ingestion-service/src/main/java/com/hybrid/ingestion/service/IngestionService.java

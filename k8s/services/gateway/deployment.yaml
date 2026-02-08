@@ -15,6 +15,35 @@ spec:
       containers:
         - name: gateway-service
           image: your-registry/gateway-service:latest
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: GATEWAY_AUTH_JWT_ENABLED
+              value: "true"
+            - name: GATEWAY_AUTH_JWT_ISSUER
+              value: hybrid-auth
+            - name: GATEWAY_AUTH_JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: gateway-jwt-secret
+                  key: jwt-secret
           ports:
             - containerPort: 9000
-          # TODO: wire env vars, probes, resources, and imagePullPolicy.
+          readinessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 9000
+            initialDelaySeconds: 20
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 9000
+            initialDelaySeconds: 45
+            periodSeconds: 20
+          resources:
+            requests:
+              cpu: 150m
+              memory: 256Mi
+            limits:
+              cpu: "1"
+              memory: 1Gi

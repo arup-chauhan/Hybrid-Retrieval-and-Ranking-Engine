@@ -1,0 +1,6 @@
+com/hybrid/fusion/util/ScoreNormalizer.class
+com/hybrid/fusion/model/SearchResult.class
+com/hybrid/fusion/model/FusionResponse.class
+com/hybrid/fusion/FusionApplication.class
+com/hybrid/fusion/controller/FusionController.class
+com/hybrid/fusion/service/FusionService.class

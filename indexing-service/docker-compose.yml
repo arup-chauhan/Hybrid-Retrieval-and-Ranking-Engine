@@ -28,10 +28,10 @@ services:
     ports:
       - "8983:8983"
     volumes:
-      - ./solr/conf:/var/solr/data/hybrid_core/conf
+      - ./solr/conf:/var/solr/data/hybrid_collection/conf
     command:
       - solr-precreate
-      - hybrid_core
+      - hybrid_collection
 
   indexing-service:
     build: .
@@ -42,7 +42,7 @@ services:
       - solr
     environment:
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
-      SOLR_URL: http://solr:8983/solr/hybrid_core
+      SOLR_URL: http://solr:8983/solr/hybrid_collection
 
   postgres:
     image: postgres:15
@@ -58,4 +58,3 @@ services:
 
   volumes:
     pgdata:
-

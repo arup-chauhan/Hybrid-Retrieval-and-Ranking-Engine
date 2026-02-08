@@ -1,0 +1,12 @@
+Running benchmark
+  URL=http://localhost:8083/search
+  REQUESTS=120 CONCURRENCY=12 TOPK=20
+  SLO targets: p95<200ms, error_rate<1%
+
+Benchmark summary
+  total_requests: 120
+  error_requests: 0
+  error_rate_pct: 0.000
+  avg_latency_ms: 159.219
+  p95_latency_ms: 227.691
+  slo_result: FAIL

@@ -16,7 +16,11 @@ public class VectorController {
     }
 
     @GetMapping("/search")
-    public List<VectorResult> search(@RequestParam String query) {
-        return vectorSearchService.search(query);
+    public List<VectorResult> search(
+            @RequestParam("query") String query,
+            @RequestParam(value = "topK", required = false) Integer topK
+    ) {
+        int resolvedTopK = (topK == null || topK <= 0) ? 10 : topK;
+        return vectorSearchService.search(query, resolvedTopK);
     }
 }

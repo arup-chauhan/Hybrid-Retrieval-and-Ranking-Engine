@@ -1,0 +1,39 @@
+syntax = "proto3";
+
+option java_multiple_files = true;
+option java_package = "com.hybrid.query.grpc";
+option java_outer_classname = "HybridQueryProto";
+
+service HybridQueryService {
+  rpc HybridSearch (HybridSearchRequest) returns (HybridSearchResponse);
+  rpc Facets (FacetsRequest) returns (FacetsResponse);
+}
+
+message HybridSearchRequest {
+  string query = 1;
+  int32 top_k = 2;
+}
+
+message RankedResultMessage {
+  string id = 1;
+  string title = 2;
+  double score = 3;
+  double lexical_score = 4;
+  double semantic_score = 5;
+}
+
+message HybridSearchResponse {
+  string message = 1;
+  string solr_result = 2;
+  string vector_result = 3;
+  repeated RankedResultMessage ranked_results = 4;
+}
+
+message FacetsRequest {
+  string field = 1;
+  int32 limit = 2;
+}
+
+message FacetsResponse {
+  string facets_json = 1;
+}

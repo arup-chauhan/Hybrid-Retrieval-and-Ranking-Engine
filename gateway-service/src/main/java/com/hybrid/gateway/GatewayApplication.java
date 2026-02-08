@@ -17,9 +17,9 @@ public class GatewayApplication {
     @Bean
     public RouteLocator routeLocator(RouteLocatorBuilder builder) {
         return builder.routes()
-                .route("query_service", r -> r.path("/query/**").uri("http://query-service:8083"))
-                .route("ranking_service", r -> r.path("/rank/**").uri("http://ranking-service:8085"))
-                .route("fusion_service", r -> r.path("/fusion/**").uri("http://fusion-service:8087"))
+                .route("query_service", r -> r.path("/search/**").uri("http://query-service:8083"))
+                .route("ranking_service", r -> r.path("/api/rank/**").uri("http://ranking-service:8085"))
+                .route("fusion_service", r -> r.path("/api/fusion/**").uri("http://fusion-service:8087"))
                 .build();
     }
 }

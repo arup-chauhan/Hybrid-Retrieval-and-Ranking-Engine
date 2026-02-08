@@ -132,6 +132,38 @@ curl -X POST http://localhost:8083/search \
 
 gRPC contracts are available for high-throughput service-to-service and external client integration where low-latency binary transport is preferred.
 
+- Query gRPC server: `localhost:9093` (`HybridQueryService`)
+- Vector gRPC server: `localhost:9094` (`VectorSearchService`)
+- Quick smoke test:
+
+```bash
+./scripting/grpc-smoke.sh
+```
+
+- Dockerized smoke test (no host `grpcurl` required):
+
+```bash
+./scripting/grpc-smoke-docker.sh
+```
+
+Direct examples:
+
+```bash
+grpcurl -plaintext \
+  -import-path query-service/src/main/proto \
+  -proto hybrid_query.proto \
+  -d '{"query":"content:hybrid","top_k":5}' \
+  localhost:9093 HybridQueryService/HybridSearch
+```
+
+```bash
+grpcurl -plaintext \
+  -import-path vector-service/src/main/proto \
+  -proto vector_search.proto \
+  -d '{"query":"hybrid search","top_k":3}' \
+  localhost:9094 VectorSearchService/Search
+```
+
 ## Storage Layer
 
 - SolrCloud: distributed BM25 index, faceting, and structured filter execution
@@ -187,6 +219,37 @@ Latency budget model:
 - Solr retrieval: <= 50ms
 - pgvector retrieval: <= 50ms
 - Fusion/ranking/serialization: <= 40ms
+
+## Latency Optimization
+
+To keep hybrid search within latency SLO, the query path uses timeout guards and caching:
+
+- Query-service sets strict downstream timeouts for Solr and vector calls:
+  - `solr.request-timeout-ms`
+  - `vector.request-timeout-ms`
+- Vector-service caches embeddings to avoid repeated Ollama calls for hot queries:
+  - `vector.embedding-cache.enabled`
+  - `vector.embedding-cache.ttl-seconds`
+  - `vector.embedding-cache.max-entries`
+- Query-service caches full hybrid responses for repeated `(query, topK)` requests:
+  - `query.cache.enabled`
+  - `query.cache.ttl-seconds`
+  - `query.cache.max-entries`
+
+This design prioritizes fast, stable responses under load and degrades gracefully if semantic retrieval is slow.
+
+Recent in-network benchmark snapshot:
+
+- `total_requests: 100`
+- `error_rate_pct: 0.000`
+- `avg_latency_ms: 14.120`
+- `p95_latency_ms: 22.658`
+
+Run benchmark in Docker network mode:
+
+```bash
+MODE=docker REQUESTS=100 CONCURRENCY=20 OUT_DIR=docs/benchmarks/latest ./scripting/benchmark-hybrid.sh
+```
 
 ## Local Deployment
 

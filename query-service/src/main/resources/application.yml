@@ -2,7 +2,36 @@ server:
   port: 8083
 
 solr:
-  url: http://solr:8983/solr/hybrid_core
+  url: http://solr:8983/solr/hybrid_collection
+  request-timeout-ms: 120
 
 vector:
   url: http://vector-service:8084
+  request-timeout-ms: 120
+  grpc:
+    enabled: false
+    host: vector-service
+    port: 9094
+
+postgres:
+  host: postgres
+  port: 5432
+  db: metadata_db
+  user: hybrid
+  password: hybrid123
+
+query:
+  cache:
+    enabled: true
+    ttl-seconds: 120
+    max-entries: 5000
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,prometheus
+
+grpc:
+  server:
+    port: 9093

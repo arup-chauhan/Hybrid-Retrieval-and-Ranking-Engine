@@ -1,6 +1,6 @@
 # Global Makefile for Hybrid Retrieval and Ranking Engine
 
-.PHONY: build up down clean logs
+.PHONY: build up down clean logs benchmark
 
 build:
 	@echo "🔧 Building all services..."
@@ -22,3 +22,7 @@ clean:
 logs:
 	@echo "📜 Viewing logs..."
 	docker-compose logs -f
+
+benchmark:
+	@echo "📈 Running hybrid benchmark..."
+	./scripting/benchmark-hybrid.sh

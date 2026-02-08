@@ -4,8 +4,8 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
-public class IndexingServiceApplication {
+public class IndexingApplication {
     public static void main(String[] args) {
-        SpringApplication.run(IndexingServiceApplication.class, args);
+        SpringApplication.run(IndexingApplication.class, args);
     }
 }

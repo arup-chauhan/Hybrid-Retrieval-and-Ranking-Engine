@@ -16,6 +16,43 @@ spec:
       containers:
         - name: zookeeper
           image: zookeeper:3.9
+          imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 2181
-          # TODO: add liveness/readiness probes and persistent storage.
+          volumeMounts:
+            - name: zk-data
+              mountPath: /data
+            - name: zk-datalog
+              mountPath: /datalog
+          readinessProbe:
+            tcpSocket:
+              port: 2181
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket:
+              port: 2181
+            initialDelaySeconds: 30
+            periodSeconds: 20
+          resources:
+            requests:
+              cpu: 150m
+              memory: 256Mi
+            limits:
+              cpu: "1"
+              memory: 1Gi
+  volumeClaimTemplates:
+    - metadata:
+        name: zk-data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 5Gi
+    - metadata:
+        name: zk-datalog
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 5Gi

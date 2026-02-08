@@ -1,0 +1,4 @@
+com/hybrid/gateway/config/GatewayServiceConfig.class
+com/hybrid/gateway/GatewayApplication.class
+com/hybrid/gateway/controllers/FallbackController.class
+com/hybrid/gateway/filters/AuthenticationFilter.class

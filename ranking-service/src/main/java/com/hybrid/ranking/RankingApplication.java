@@ -4,8 +4,8 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
-public class RankingServiceApplication {
+public class RankingApplication {
     public static void main(String[] args) {
-        SpringApplication.run(RankingServiceApplication.class, args);
+        SpringApplication.run(RankingApplication.class, args);
     }
 }

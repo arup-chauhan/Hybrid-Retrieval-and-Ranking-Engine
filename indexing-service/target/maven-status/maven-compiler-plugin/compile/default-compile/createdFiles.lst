@@ -1,0 +1,8 @@
+com/hybrid/indexing/config/DatabaseConfig.class
+com/hybrid/indexing/service/VectorMetadataService.class
+com/hybrid/indexing/consumer/DocumentConsumer.class
+com/hybrid/indexing/service/MetadataService.class
+com/hybrid/indexing/model/DocumentMetadata.class
+com/hybrid/indexing/config/KafkaConsumerConfig.class
+com/hybrid/indexing/service/SolrIndexService.class
+com/hybrid/indexing/IndexingApplication.class

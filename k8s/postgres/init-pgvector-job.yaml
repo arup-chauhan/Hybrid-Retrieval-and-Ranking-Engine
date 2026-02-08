@@ -12,9 +12,15 @@ spec:
           env:
             - name: PGPASSWORD
               value: hybrid123
+          volumeMounts:
+            - name: schema-sql
+              mountPath: /schema
           command:
             - /bin/sh
             - -c
             - |
-              psql -h postgres -U hybrid -d metadata_db -c "CREATE EXTENSION IF NOT EXISTS vector;"
-              # TODO: apply schema migrations for embeddings + query logs.
+              psql -h postgres -U hybrid -d metadata_db -f /schema/init-schema.sql
+      volumes:
+        - name: schema-sql
+          configMap:
+            name: postgres-schema-sql

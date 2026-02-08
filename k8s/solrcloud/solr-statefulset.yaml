@@ -16,6 +16,7 @@ spec:
       containers:
         - name: solr
           image: solr:9.4
+          imagePullPolicy: IfNotPresent
           args:
             - solr-fg
             - -c
@@ -23,4 +24,33 @@ spec:
             - zookeeper:2181
           ports:
             - containerPort: 8983
-          # TODO: add probes, resources, and PVC.
+          volumeMounts:
+            - name: solr-data
+              mountPath: /var/solr
+          readinessProbe:
+            httpGet:
+              path: /solr/admin/info/system
+              port: 8983
+            initialDelaySeconds: 20
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /solr/admin/info/system
+              port: 8983
+            initialDelaySeconds: 50
+            periodSeconds: 20
+          resources:
+            requests:
+              cpu: 300m
+              memory: 768Mi
+            limits:
+              cpu: "2"
+              memory: 3Gi
+  volumeClaimTemplates:
+    - metadata:
+        name: solr-data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 20Gi

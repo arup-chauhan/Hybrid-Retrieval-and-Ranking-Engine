@@ -15,6 +15,46 @@ spec:
       containers:
         - name: vector-service
           image: your-registry/vector-service:latest
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: VECTOR_OLLAMA_BASE_URL
+              value: http://ollama:11434
+            - name: VECTOR_EMBEDDING_MODEL
+              value: embeddinggemma
+            - name: POSTGRES_HOST
+              value: postgres
+            - name: POSTGRES_PORT
+              value: "5432"
+            - name: POSTGRES_DB
+              value: metadata_db
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secret
+                  key: username
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secret
+                  key: password
           ports:
             - containerPort: 8084
-          # TODO: wire env vars, probes, resources, and imagePullPolicy.
+          readinessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8084
+            initialDelaySeconds: 20
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8084
+            initialDelaySeconds: 45
+            periodSeconds: 20
+          resources:
+            requests:
+              cpu: 300m
+              memory: 512Mi
+            limits:
+              cpu: "2"
+              memory: 2Gi

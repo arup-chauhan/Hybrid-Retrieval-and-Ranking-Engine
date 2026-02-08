@@ -13,5 +13,4 @@ spec:
             - /bin/sh
             - -c
             - |
-              # TODO: replace model with final choice, e.g. mxbai-embed-large.
-              curl -sS http://ollama:11434/api/pull -d '{"name":"nomic-embed-text"}'
+              curl -sS http://ollama:11434/api/pull -d '{"name":"embeddinggemma"}'

@@ -9,20 +9,29 @@ resources:
   - solrcloud/solr-statefulset.yaml
   - solrcloud/init-collection-job.yaml
   - postgres/postgres-service.yaml
+  - postgres/postgres-secret.yaml
   - postgres/postgres-statefulset.yaml
+  - postgres/schema-configmap.yaml
   - postgres/init-pgvector-job.yaml
   - ollama/ollama-service.yaml
+  - ollama/ollama-pvc.yaml
   - ollama/ollama-deployment.yaml
   - ollama/pull-model-job.yaml
   - redis/redis-service.yaml
   - redis/redis-deployment.yaml
   - services/query/service.yaml
   - services/query/deployment.yaml
+  - services/query/hpa.yaml
   - services/vector/service.yaml
   - services/vector/deployment.yaml
+  - services/vector/hpa.yaml
   - services/ranking/service.yaml
   - services/ranking/deployment.yaml
+  - services/ranking/hpa.yaml
   - services/fusion/service.yaml
   - services/fusion/deployment.yaml
+  - services/fusion/hpa.yaml
+  - services/gateway/jwt-secret.yaml
   - services/gateway/service.yaml
   - services/gateway/deployment.yaml
+  - services/gateway/hpa.yaml

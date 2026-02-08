@@ -15,6 +15,25 @@ spec:
       containers:
         - name: ranking-service
           image: your-registry/ranking-service:latest
+          imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8085
-          # TODO: wire env vars, probes, resources, and imagePullPolicy.
+          readinessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8085
+            initialDelaySeconds: 20
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8085
+            initialDelaySeconds: 45
+            periodSeconds: 20
+          resources:
+            requests:
+              cpu: 150m
+              memory: 256Mi
+            limits:
+              cpu: 800m
+              memory: 768Mi

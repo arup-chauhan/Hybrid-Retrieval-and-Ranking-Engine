@@ -1,0 +1,8 @@
+/Users/arup/Documents/Projects/Individual Projects/Hybrid-Retrieval-and-Ranking-Engine/indexing-service/src/main/java/com/hybrid/indexing/model/DocumentMetadata.java
+/Users/arup/Documents/Projects/Individual Projects/Hybrid-Retrieval-and-Ranking-Engine/indexing-service/src/main/java/com/hybrid/indexing/service/VectorMetadataService.java
+/Users/arup/Documents/Projects/Individual Projects/Hybrid-Retrieval-and-Ranking-Engine/indexing-service/src/main/java/com/hybrid/indexing/config/DatabaseConfig.java
+/Users/arup/Documents/Projects/Individual Projects/Hybrid-Retrieval-and-Ranking-Engine/indexing-service/src/main/java/com/hybrid/indexing/service/SolrIndexService.java
+/Users/arup/Documents/Projects/Individual Projects/Hybrid-Retrieval-and-Ranking-Engine/indexing-service/src/main/java/com/hybrid/indexing/consumer/DocumentConsumer.java
+/Users/arup/Documents/Projects/Individual Projects/Hybrid-Retrieval-and-Ranking-Engine/indexing-service/src/main/java/com/hybrid/indexing/config/KafkaConsumerConfig.java
+/Users/arup/Documents/Projects/Individual Projects/Hybrid-Retrieval-and-Ranking-Engine/indexing-service/src/main/java/com/hybrid/indexing/service/MetadataService.java
+/Users/arup/Documents/Projects/Individual Projects/Hybrid-Retrieval-and-Ranking-Engine/indexing-service/src/main/java/com/hybrid/indexing/IndexingApplication.java

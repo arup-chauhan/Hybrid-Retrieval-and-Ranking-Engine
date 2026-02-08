@@ -15,6 +15,36 @@ spec:
       containers:
         - name: query-service
           image: your-registry/query-service:latest
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: SOLR_URL
+              value: http://solr:8983/solr/hybrid_collection
+            - name: VECTOR_URL
+              value: http://vector-service:8084
+            - name: VECTOR_GRPC_ENABLED
+              value: "true"
+            - name: VECTOR_GRPC_HOST
+              value: vector-service
+            - name: VECTOR_GRPC_PORT
+              value: "9094"
           ports:
             - containerPort: 8083
-          # TODO: wire env vars, probes, resources, and imagePullPolicy.
+          readinessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8083
+            initialDelaySeconds: 20
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8083
+            initialDelaySeconds: 45
+            periodSeconds: 20
+          resources:
+            requests:
+              cpu: 200m
+              memory: 256Mi
+            limits:
+              cpu: "1"
+              memory: 1Gi

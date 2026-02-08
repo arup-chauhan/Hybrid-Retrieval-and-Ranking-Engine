@@ -18,14 +18,14 @@ class VectorSearchServiceTest {
 
     @Test
     void searchReturnsResults() {
-        List<VectorResult> results = vectorSearchService.search("test query");
+        List<VectorResult> results = vectorSearchService.search("test query", 10);
         assertNotNull(results);
         assertFalse(results.isEmpty());
     }
 
     @Test
     void searchResultsHaveValidScores() {
-        List<VectorResult> results = vectorSearchService.search("semantic");
+        List<VectorResult> results = vectorSearchService.search("semantic", 10);
         for (VectorResult r : results) {
             assertTrue(r.getSimilarityScore() >= 0 && r.getSimilarityScore() <= 1);
             assertNotNull(r.getDocumentId());
