@@ -1,8 +1,8 @@
-package com.hybridsearch.ingestion.service;
+package com.hybrid.ingestion.service;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.hybridsearch.ingestion.model.DocumentRequest;
+import com.hybrid.ingestion.model.DocumentRequest;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;

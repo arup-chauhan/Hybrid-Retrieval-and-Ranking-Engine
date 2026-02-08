@@ -1,8 +1,8 @@
 package com.hybrid.ingestion;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.hybridsearch.ingestion.model.DocumentRequest;
-import com.hybridsearch.ingestion.service.IngestionService;
+import com.hybrid.ingestion.model.DocumentRequest;
+import com.hybrid.ingestion.service.IngestionService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;

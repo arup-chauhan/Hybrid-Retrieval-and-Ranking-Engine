@@ -1,6 +1,6 @@
-package com.hybridsearch.ranking.service;
+package com.hybrid.ranking.service;
 
-import com.hybridsearch.ranking.model.RankedDocument;
+import com.hybrid.ranking.model.RankedDocument;
 import org.springframework.stereotype.Service;
 import java.util.*;
 

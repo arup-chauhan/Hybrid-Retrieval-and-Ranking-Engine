@@ -1,4 +1,4 @@
-package com.hybridsearch.fusion.util;
+package com.hybrid.fusion.util;
 
 public class ScoreNormalizer {
     public static double normalize(double score) {

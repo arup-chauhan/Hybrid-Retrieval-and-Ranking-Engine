@@ -1,4 +1,4 @@
-package com.hybridsearch.ingestion.model;
+package com.hybrid.ingestion.model;
 
 import lombok.Data;
 

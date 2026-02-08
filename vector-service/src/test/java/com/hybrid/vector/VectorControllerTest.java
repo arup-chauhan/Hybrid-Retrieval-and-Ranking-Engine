@@ -1,8 +1,8 @@
-package com.hybridsearch.vector;
+package com.hybrid.vector;
 
-import com.hybridsearch.vector.controller.VectorController;
-import com.hybridsearch.vector.model.VectorResult;
-import com.hybridsearch.vector.service.VectorSearchService;
+import com.hybrid.vector.controller.VectorController;
+import com.hybrid.vector.model.VectorResult;
+import com.hybrid.vector.service.VectorSearchService;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

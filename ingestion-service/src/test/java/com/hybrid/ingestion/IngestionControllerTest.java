@@ -1,8 +1,8 @@
 package com.hybrid.ingestion;
 
-import com.hybridsearch.ingestion.controller.IngestionController;
-import com.hybridsearch.ingestion.model.DocumentRequest;
-import com.hybridsearch.ingestion.service.IngestionService;
+import com.hybrid.ingestion.controller.IngestionController;
+import com.hybrid.ingestion.model.DocumentRequest;
+import com.hybrid.ingestion.service.IngestionService;
 import org.junit.jupiter.api.Test;
 
 import static org.mockito.Mockito.*;

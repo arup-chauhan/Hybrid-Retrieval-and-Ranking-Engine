@@ -20,7 +20,7 @@
     </appender>
 
     <logger name="org.springframework" level="INFO"/>
-    <logger name="com.hybridsearch.vector" level="DEBUG"/>
+    <logger name="com.hybrid.vector" level="DEBUG"/>
 
     <root level="INFO">
         <appender-ref ref="CONSOLE"/>

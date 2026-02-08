@@ -1,18 +1,19 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+         http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>com.hybridsearch</groupId>
-    <artifactId>ranking-service</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
-    <name>Ranking Service</name>
-    <description>ML-based ranking microservice for Hybrid Search Engine</description>
+    <parent>
+        <groupId>com.hybrid</groupId>
+        <artifactId>hybrid-retrieval-and-ranking-engine</artifactId>
+        <version>1.0.0</version>
+        <relativePath>../pom.xml</relativePath>
+    </parent>
 
-    <properties>
-        <java.version>17</java.version>
-        <spring.boot.version>3.3.2</spring.boot.version>
-    </properties>
+    <artifactId>ranking-service</artifactId>
+    <name>Ranking Service</name>
+    <description>ML-based ranking microservice for Hybrid Retrieval and Ranking Engine</description>
 
     <dependencies>
         <dependency>

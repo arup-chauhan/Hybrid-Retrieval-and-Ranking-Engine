@@ -1,7 +1,7 @@
-package com.hybridsearch.vector.controller;
+package com.hybrid.vector.controller;
 
-import com.hybridsearch.vector.model.VectorResult;
-import com.hybridsearch.vector.service.VectorSearchService;
+import com.hybrid.vector.model.VectorResult;
+import com.hybrid.vector.service.VectorSearchService;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;

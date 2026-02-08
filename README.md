@@ -7,6 +7,7 @@ A production-ready distributed search platform that combines lexical and semanti
 - [Overview](#overview)
 - [What This System Delivers](#what-this-system-delivers)
 - [Architecture](#architecture)
+- [Layered Architecture](#layered-architecture)
 - [Coordination and Cluster Management](#coordination-and-cluster-management)
 - [Services](#services)
 - [Data and Query Flow](#data-and-query-flow)
@@ -52,6 +53,20 @@ The runtime is split into retrieval, ranking, and platform layers:
 - Platform layer: gateway, orchestration, aggregation, caching, monitoring, and metadata services
 
 Stateful infrastructure is deployed with Kubernetes primitives and service-level routing.
+
+## Layered Architecture
+
+The system is organized as explicit runtime layers so responsibilities are clear and independently scalable:
+
+- Edge layer: `gateway-service` for client entry, routing, and fallback handling
+- API and orchestration layer: `query-service` and `orchestration-service` for request fan-out and control-plane workflows
+- Retrieval and ranking layer: `indexing-service`, `vector-service`, `fusion-service`, `ranking-service`, and `aggregation-service`
+- Data and platform layer: SolrCloud, PostgreSQL + pgvector, Redis, Kafka, and ZooKeeper
+- Observability layer: `monitoring-service` with Prometheus/Grafana assets under `observability/`
+
+Within each service, code follows a consistent internal boundary:
+
+- `controller` -> `service` -> `repository` or client adapters -> `model`
 
 ## Coordination and Cluster Management
 
@@ -190,6 +205,10 @@ mvn clean package
 docker-compose up --build -d
 ```
 
+Quick walkthrough:
+
+- `docs/demo.md`
+
 Stop local stack:
 
 ```bash
@@ -254,5 +273,6 @@ Design boundary:
 - `query-service/`
 - `ranking-service/`
 - `vector-service/`
+- `docs/`
 - `docker-compose.yaml`
 - `pom.xml`

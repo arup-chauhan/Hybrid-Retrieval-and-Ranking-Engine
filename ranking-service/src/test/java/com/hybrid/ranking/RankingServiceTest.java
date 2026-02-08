@@ -1,6 +1,6 @@
-package com.hybridsearch.ranking;
+package com.hybrid.ranking;
 
-import com.hybridsearch.ranking.service.RankingService;
+import com.hybrid.ranking.service.RankingService;
 import org.junit.jupiter.api.Test;
 import java.util.*;
 

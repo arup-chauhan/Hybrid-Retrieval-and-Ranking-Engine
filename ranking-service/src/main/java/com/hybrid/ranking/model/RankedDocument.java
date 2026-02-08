@@ -1,4 +1,4 @@
-package com.hybridsearch.ranking.model;
+package com.hybrid.ranking.model;
 
 public class RankedDocument {
     private String id;

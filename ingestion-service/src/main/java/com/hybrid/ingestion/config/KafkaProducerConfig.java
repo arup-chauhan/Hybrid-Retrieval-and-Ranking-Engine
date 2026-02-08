@@ -1,4 +1,4 @@
-package com.hybridsearch.ingestion.config;
+package com.hybrid.ingestion.config;
 
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.serialization.StringSerializer;

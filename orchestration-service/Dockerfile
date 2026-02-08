@@ -1,4 +1,4 @@
 FROM openjdk:17-jdk-slim
 WORKDIR /app
-COPY target/orchestration-layer.jar orchestration-layer.jar
-ENTRYPOINT ["java", "-jar", "orchestration-layer.jar"]
+COPY target/orchestration-service.jar orchestration-service.jar
+ENTRYPOINT ["java", "-jar", "orchestration-service.jar"]

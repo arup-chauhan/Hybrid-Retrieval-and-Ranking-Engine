@@ -1,7 +1,7 @@
-package com.hybridsearch.fusion.controller;
+package com.hybrid.fusion.controller;
 
-import com.hybridsearch.fusion.model.FusionResponse;
-import com.hybridsearch.fusion.service.FusionService;
+import com.hybrid.fusion.model.FusionResponse;
+import com.hybrid.fusion.service.FusionService;
 import org.springframework.web.bind.annotation.*;
 import java.util.Map;
 

@@ -1,7 +1,7 @@
-package com.hybridsearch.ranking.controller;
+package com.hybrid.ranking.controller;
 
-import com.hybridsearch.ranking.model.RankedDocument;
-import com.hybridsearch.ranking.service.RankingService;
+import com.hybrid.ranking.model.RankedDocument;
+import com.hybrid.ranking.service.RankingService;
 import org.springframework.web.bind.annotation.*;
 import java.util.*;
 

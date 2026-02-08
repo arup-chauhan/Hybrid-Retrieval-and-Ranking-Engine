@@ -1,4 +1,4 @@
-package com.hybridsearch.ranking.service;
+package com.hybrid.ranking.service;
 
 import java.util.Map;
 

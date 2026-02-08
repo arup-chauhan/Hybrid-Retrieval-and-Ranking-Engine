@@ -1,4 +1,4 @@
-package com.hybridsearch.ranking;
+package com.hybrid.ranking;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;

@@ -1,4 +1,4 @@
-package com.hybridsearch.vector.model;
+package com.hybrid.vector.model;
 
 public class VectorResult {
     private String documentId;

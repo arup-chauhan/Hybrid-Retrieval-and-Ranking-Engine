@@ -1,7 +1,7 @@
-package com.hybridsearch.ingestion.controller;
+package com.hybrid.ingestion.controller;
 
-import com.hybridsearch.ingestion.model.DocumentRequest;
-import com.hybridsearch.ingestion.service.IngestionService;
+import com.hybrid.ingestion.model.DocumentRequest;
+import com.hybrid.ingestion.service.IngestionService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 

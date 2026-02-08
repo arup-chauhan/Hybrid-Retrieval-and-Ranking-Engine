@@ -1,4 +1,4 @@
-package com.hybridsearch.fusion.model;
+package com.hybrid.fusion.model;
 
 public class SearchResult {
     private String id;

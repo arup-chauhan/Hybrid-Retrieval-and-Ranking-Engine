@@ -1,8 +1,8 @@
-package com.hybridsearch.fusion.service;
+package com.hybrid.fusion.service;
 
-import com.hybridsearch.fusion.model.FusionResponse;
-import com.hybridsearch.fusion.model.SearchResult;
-import com.hybridsearch.fusion.util.ScoreNormalizer;
+import com.hybrid.fusion.model.FusionResponse;
+import com.hybrid.fusion.model.SearchResult;
+import com.hybrid.fusion.util.ScoreNormalizer;
 import org.springframework.stereotype.Service;
 import java.util.*;
 import java.util.stream.Collectors;

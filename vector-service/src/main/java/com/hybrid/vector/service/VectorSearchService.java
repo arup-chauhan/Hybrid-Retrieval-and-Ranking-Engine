@@ -1,6 +1,6 @@
-package com.hybridsearch.vector.service;
+package com.hybrid.vector.service;
 
-import com.hybridsearch.vector.model.VectorResult;
+import com.hybrid.vector.model.VectorResult;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
