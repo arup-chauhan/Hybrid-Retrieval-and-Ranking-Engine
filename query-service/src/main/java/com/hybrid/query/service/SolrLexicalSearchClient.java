@@ -6,7 +6,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 
 import java.time.Duration;
-
 @Service
 public class SolrLexicalSearchClient implements LexicalSearchClient {
 
@@ -28,11 +27,15 @@ public class SolrLexicalSearchClient implements LexicalSearchClient {
 
     @Override
     public String search(String query) {
+        String lexicalQuery = (query == null || query.isBlank()) ? "*:*" : query.trim();
         return webClient.get()
                 .uri(uriBuilder -> uriBuilder
                         .path("/select")
-                        .queryParam("q", query)
-                        .queryParam("fl", "id,title,score")
+                        .queryParam("defType", "edismax")
+                        .queryParam("q", lexicalQuery)
+                        .queryParam("qf", "title_t^3 content_t^2 metadata_t")
+                        .queryParam("q.op", "AND")
+                        .queryParam("fl", "id,title,title_t,score")
                         .queryParam("rows", 50)
                         .queryParam("wt", "json")
                 .build())

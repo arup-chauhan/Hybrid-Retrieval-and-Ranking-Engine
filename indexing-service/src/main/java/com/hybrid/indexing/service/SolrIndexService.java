@@ -34,8 +34,7 @@ public class SolrIndexService {
     public void indexDocument(String message) {
         try {
             Map<String, Object> docMap = mapper.readValue(message, Map.class);
-            SolrInputDocument doc = new SolrInputDocument();
-            docMap.forEach(doc::addField);
+            SolrInputDocument doc = toSolrDocument(docMap);
             pendingDocs.add(doc);
 
             if (pendingDocs.size() >= batchSize) {
@@ -44,6 +43,50 @@ public class SolrIndexService {
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+
+    private SolrInputDocument toSolrDocument(Map<String, Object> docMap) {
+        SolrInputDocument doc = new SolrInputDocument();
+
+        Object id = docMap.get("id");
+        if (id != null) {
+            doc.addField("id", String.valueOf(id));
+        }
+
+        String title = asNonBlankString(docMap.get("title"));
+        String content = asNonBlankString(docMap.get("content"));
+        String metadata = asNonBlankString(docMap.get("metadata"));
+
+        if (title != null) {
+            // Keep raw field for compatibility and index via *_t for lexical queryability.
+            doc.addField("title", title);
+            doc.addField("title_t", title);
+        }
+        if (content != null) {
+            doc.addField("content", content);
+            doc.addField("content_t", content);
+        }
+        if (metadata != null) {
+            doc.addField("metadata", metadata);
+            doc.addField("metadata_t", metadata);
+        }
+
+        docMap.forEach((key, value) -> {
+            if (value == null || "id".equals(key) || "title".equals(key) || "content".equals(key) || "metadata".equals(key)) {
+                return;
+            }
+            doc.addField(key, value);
+        });
+
+        return doc;
+    }
+
+    private String asNonBlankString(Object value) {
+        if (value == null) {
+            return null;
+        }
+        String text = String.valueOf(value).trim();
+        return text.isEmpty() ? null : text;
     }
 
     @Scheduled(fixedDelayString = "${solr.commit-interval-ms:2000}")

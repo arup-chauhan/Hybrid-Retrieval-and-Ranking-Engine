@@ -22,6 +22,32 @@ Entry template:
 
 ---
 
+## 2026-02-09 - Solr docs present but lexical search returned empty results
+
+- Context: stack was up (`query-service`, `solr`, `frontend` healthy) but search API/UI returned no ranked hits.
+- Symptom:
+  - `POST /search` returned `rankedResults: []`.
+  - query logs showed `stage=lexical_search outcome=ERROR` or `SUCCESS` with `lexical_docs=0`.
+  - Solr `q=*:*` showed large `numFound`, but text queries returned zero.
+- Root cause:
+  - indexed documents were written as raw fields (`title/content/metadata`) that were not queryable under active Solr schema.
+  - lexical query path was targeting non-indexed/mismatched field patterns.
+- Fix:
+  - indexing-service now writes queryable text fields: `title_t`, `content_t`, `metadata_t` (and keeps raw fields for compatibility).
+  - query-service lexical client switched to Solr `edismax` against `title_t^3 content_t^2 metadata_t`.
+  - query parser now falls back to `title_t` when `title` is absent.
+- Files changed:
+  - `indexing-service/src/main/java/com/hybrid/indexing/service/SolrIndexService.java`
+  - `query-service/src/main/java/com/hybrid/query/service/SolrLexicalSearchClient.java`
+  - `query-service/src/main/java/com/hybrid/query/service/QueryService.java`
+- Verification:
+  - ingested probe doc through ingestion API.
+  - confirmed Solr hit for `id:probe-doc-lex-1` including `title_t/content_t`.
+  - confirmed `POST /search` returned one ranked hit for `Hotwheels FIFA 26 tournament`.
+  - confirmed frontend proxy `POST http://localhost:3001/api/search` returned same hit.
+- Follow-up action:
+  - existing previously indexed docs may not be lexically searchable until re-ingested with new field mapping.
+
 ## 2026-02-09 - Frontend `Failed to fetch` due build-time API base drift
 
 - Context: bringing up `frontend-service` (Next.js) for live search UI.

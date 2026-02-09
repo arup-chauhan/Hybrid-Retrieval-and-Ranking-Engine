@@ -317,13 +317,17 @@ public class QueryService {
             incrementCounter("query_stage_timeout_total");
         } catch (ExecutionException ex) {
             outcome = "ERROR";
+            Throwable cause = ex.getCause() == null ? ex : ex.getCause();
+            log.warn("query stage failed metric={} cause={}", metricName, cause.toString());
             incrementCounter("query_stage_error_total");
         } catch (InterruptedException ex) {
             Thread.currentThread().interrupt();
             outcome = "ERROR";
+            log.warn("query stage interrupted metric={} cause={}", metricName, ex.toString());
             incrementCounter("query_stage_error_total");
         } catch (Exception ex) {
             outcome = "ERROR";
+            log.warn("query stage failed metric={} cause={}", metricName, ex.toString());
             incrementCounter("query_stage_error_total");
         } finally {
             recordTimer(metricName, start);
@@ -362,6 +366,9 @@ public class QueryService {
                     continue;
                 }
                 String title = extractTitle(node.get("title"));
+                if (title.isBlank()) {
+                    title = extractTitle(node.get("title_t"));
+                }
                 double score = extractSolrScore(node.get("score"), idx, total);
                 docs.add(new DocSignal(id, title, score));
             }

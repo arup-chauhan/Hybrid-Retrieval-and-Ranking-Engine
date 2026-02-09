@@ -17,6 +17,7 @@ Use this as your publishing queue. Each issue doc is structured for article writ
 5. `Walkthroughs/ISSUE_05_AIRFLOW_INIT_AND_DAG_EXECUTION_HARDENING.md`
 6. Frontend API base drift + proxy fix (`Walkthroughs/ERRORS_AND_FIXES_LIVING_LOG.md`)
 7. Custom search base scrape->ingest workflow (`Walkthroughs/ERRORS_AND_FIXES_LIVING_LOG.md`)
+8. Solr lexical field mapping mismatch (`Walkthroughs/ERRORS_AND_FIXES_LIVING_LOG.md`)
 
 ## Suggested Medium series title
 
