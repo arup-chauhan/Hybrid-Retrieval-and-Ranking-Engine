@@ -223,7 +223,13 @@ Target benchmark profile:
 Validation workflow (for 500K target):
 
 ```bash
-TARGET_DOCS=500000 CONCURRENCY=40 BENCH_REQUESTS=100 BENCH_CONCURRENCY=20 ./scripting/validate-500k-e2e.sh
+TARGET_DOCS=500000 CONCURRENCY=40 BENCH_REQUESTS=100 BENCH_CONCURRENCY=20 BENCH_RATE_QPS=12 ./scripting/validate-500k-e2e.sh
+```
+
+Paced validator smoke (quick end-to-end dry run of the same flow):
+
+```bash
+make validate-500k-paced-smoke
 ```
 
 Latency budget model:
@@ -264,6 +270,24 @@ Run benchmark in Docker network mode:
 MODE=docker REQUESTS=100 CONCURRENCY=20 OUT_DIR=docs/benchmarks/latest ./scripting/benchmark-hybrid.sh
 ```
 
+Paced SLO benchmark pair (README envelope at 12 QPS):
+
+```bash
+make benchmark-slo
+```
+
+CI-style quick benchmark gate (fast paced smoke):
+
+```bash
+make benchmark-smoke-ci
+```
+
+Default smoke profile:
+
+- requests: `40`
+- concurrency: `5`
+- paced rate: `8 QPS`
+
 ## Local Deployment
 
 Prerequisites:
@@ -279,6 +303,12 @@ git clone https://github.com/Arup-Chauhan/Hybrid-Retrieval-and-Ranking-Engine.gi
 cd Hybrid-Retrieval-and-Ranking-Engine
 mvn clean package
 docker-compose -p hybrid-retrieval-and-ranking-engine up --build -d
+```
+
+Or use the project Make target (build + compose up in one step):
+
+```bash
+make up
 ```
 
 Quick walkthrough:

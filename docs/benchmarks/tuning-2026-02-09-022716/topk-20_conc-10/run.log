@@ -1,0 +1,16 @@
+=== topK=20 conc=10 ===
+Running benchmark in Docker network mode
+  DOCKER_NETWORK=hybrid-retrieval-and-ranking-engine_default
+  URL=http://query-service:8083/search
+Running benchmark
+  URL=http://query-service:8083/search
+  REQUESTS=80 CONCURRENCY=10 TOPK=20
+  SLO targets: p95<200ms, error_rate<1%
+
+Benchmark summary
+  total_requests: 80
+  error_requests: 0
+  error_rate_pct: 0.000
+  avg_latency_ms: 874.924
+  p95_latency_ms: 3792.237
+  slo_result: FAIL

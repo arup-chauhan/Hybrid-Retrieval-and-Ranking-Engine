@@ -3,11 +3,11 @@ server:
 
 solr:
   url: http://solr:8983/solr/hybrid_collection
-  request-timeout-ms: 120
+  request-timeout-ms: 60
 
 vector:
   url: http://vector-service:8084
-  request-timeout-ms: 120
+  request-timeout-ms: 60
   grpc:
     enabled: false
     host: vector-service
@@ -24,10 +24,19 @@ caching:
   url: http://caching-service:8096
 
 query:
+  execution:
+    total-budget-ms: 120
+    vector-stage-budget-ms: 40
   cache:
     enabled: true
     ttl-seconds: 120
     max-entries: 5000
+  warmup:
+    enabled: false
+    query: startup warmup probe
+    top-k: 1
+    attempts: 2
+    delay-ms: 2000
 
 management:
   endpoints:

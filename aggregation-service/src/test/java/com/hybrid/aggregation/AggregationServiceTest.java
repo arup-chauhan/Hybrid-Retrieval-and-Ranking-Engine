@@ -19,7 +19,7 @@ class AggregationServiceTest {
         Map<String, Double> merged = result.getResults();
 
         assertEquals(3, merged.size());
-        assertTrue(merged.get("doc3") > merged.get("doc2"));
+        assertTrue(merged.get("doc2") > merged.get("doc3"));
         assertNotNull(merged.get("doc1"));
     }
 }

@@ -1,4 +1,5 @@
-FROM openjdk:17-jdk-slim
+FROM eclipse-temurin:17-jre-jammy
 WORKDIR /app
-COPY target/orchestration-service.jar orchestration-service.jar
-ENTRYPOINT ["java", "-jar", "orchestration-service.jar"]
+ARG JAR_FILE=target/*.jar
+COPY ${JAR_FILE} app.jar
+ENTRYPOINT ["java", "-jar", "app.jar"]

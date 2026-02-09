@@ -1,4 +1,5 @@
-FROM openjdk:17-jdk-slim
+FROM eclipse-temurin:17-jre-jammy
 WORKDIR /app
-COPY target/metadata-layer.jar metadata-layer.jar
-ENTRYPOINT ["java", "-jar", "metadata-layer.jar"]
+ARG JAR_FILE=target/*.jar
+COPY ${JAR_FILE} app.jar
+ENTRYPOINT ["java", "-jar", "app.jar"]

@@ -4,7 +4,7 @@ services:
   zookeeper:
     image: confluentinc/cp-zookeeper:7.6.1
     ports:
-      - "2181:2181"
+      - "${ZOOKEEPER_HOST_PORT:-2181}:2181"
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
@@ -12,7 +12,7 @@ services:
   kafka:
     image: confluentinc/cp-kafka:7.6.1
     ports:
-      - "9092:9092"
+      - "${KAFKA_HOST_PORT:-9092}:9092"
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
@@ -55,7 +55,7 @@ services:
   ingestion-service:
     build: ./ingestion-service
     ports:
-      - "8081:8081"
+      - "${INGESTION_HOST_PORT:-8081}:8081"
     environment:
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
       APP_KAFKA_TOPIC: ${APP_KAFKA_TOPIC:-ingestion-topic}
@@ -65,10 +65,11 @@ services:
   indexing-service:
     build: ./indexing-service
     ports:
-      - "8082:8082"
+      - "${INDEXING_HOST_PORT:-8082}:8082"
     environment:
       SPRING_KAFKA_CONSUMER_BOOTSTRAP_SERVERS: kafka:9092
       SPRING_KAFKA_CONSUMER_GROUP_ID: ${INDEXING_CONSUMER_GROUP_ID:-indexing-group}
+      SPRING_KAFKA_CONSUMER_AUTO_OFFSET_RESET: ${INDEXING_AUTO_OFFSET_RESET:-latest}
       APP_KAFKA_TOPIC: ${APP_KAFKA_TOPIC:-ingestion-topic}
       SOLR_BATCH_SIZE: ${SOLR_BATCH_SIZE:-500}
       SOLR_COMMIT_INTERVAL_MS: ${SOLR_COMMIT_INTERVAL_MS:-2000}
@@ -80,13 +81,18 @@ services:
   query-service:
     build: ./query-service
     ports:
-      - "8083:8083"
-      - "9093:9093"
+      - "${QUERY_HOST_PORT:-8083}:8083"
+      - "${QUERY_GRPC_HOST_PORT:-9093}:9093"
     environment:
       VECTOR_GRPC_ENABLED: "true"
       VECTOR_GRPC_HOST: vector-service
       VECTOR_GRPC_PORT: 9094
       CACHING_URL: http://caching-service:8096
+      QUERY_WARMUP_ENABLED: "true"
+      QUERY_WARMUP_QUERY: wireless headphones
+      QUERY_WARMUP_TOP_K: 20
+      QUERY_WARMUP_ATTEMPTS: 4
+      QUERY_WARMUP_DELAY_MS: 2000
     depends_on:
       - solr
       - vector-service
@@ -100,8 +106,8 @@ services:
   vector-service:
     build: ./vector-service
     ports:
-      - "8084:8084"
-      - "9094:9094"
+      - "${VECTOR_HOST_PORT:-8084}:8084"
+      - "${VECTOR_GRPC_HOST_PORT:-9094}:9094"
     depends_on:
       - postgres
       - ollama

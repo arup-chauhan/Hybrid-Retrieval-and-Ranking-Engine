@@ -1,5 +1,6 @@
-FROM openjdk:17-jdk-slim
+FROM eclipse-temurin:17-jre-jammy
 WORKDIR /app
-COPY target/gateway-service.jar gateway-service.jar
+ARG JAR_FILE=target/*.jar
+COPY ${JAR_FILE} app.jar
 EXPOSE 9000
-ENTRYPOINT ["java", "-jar", "gateway-service.jar"]
+ENTRYPOINT ["java", "-jar", "app.jar"]

@@ -7,6 +7,7 @@ QUERY="${QUERY:-wireless headphones}"
 TOPK="${TOPK:-20}"
 REQUESTS="${REQUESTS:-200}"
 CONCURRENCY="${CONCURRENCY:-20}"
+RATE_QPS="${RATE_QPS:-0}"
 P95_TARGET_MS="${P95_TARGET_MS:-200}"
 ERROR_RATE_TARGET_PCT="${ERROR_RATE_TARGET_PCT:-1}"
 OUT_DIR="${OUT_DIR:-/tmp/hybrid-benchmark}"
@@ -59,6 +60,7 @@ if [ "$MODE" = "docker" ] && [ "${INSIDE_DOCKER_BENCH:-0}" != "1" ]; then
     -e TOPK="$TOPK" \
     -e REQUESTS="$REQUESTS" \
     -e CONCURRENCY="$CONCURRENCY" \
+    -e RATE_QPS="$RATE_QPS" \
     -e P95_TARGET_MS="$P95_TARGET_MS" \
     -e ERROR_RATE_TARGET_PCT="$ERROR_RATE_TARGET_PCT" \
     -e OUT_DIR=/out \
@@ -78,11 +80,18 @@ rm -f "$LAT_FILE" "$RES_FILE"
 echo "Running benchmark"
 echo "  URL=$URL"
 echo "  REQUESTS=$REQUESTS CONCURRENCY=$CONCURRENCY TOPK=$TOPK"
+if [ "$RATE_QPS" -gt 0 ]; then
+  echo "  RATE_QPS=$RATE_QPS (paced mode)"
+else
+  echo "  RATE_QPS=unlimited (max-throughput mode)"
+fi
 echo "  SLO targets: p95<${P95_TARGET_MS}ms, error_rate<${ERROR_RATE_TARGET_PCT}%"
 
 export URL QUERY TOPK LAT_FILE RES_FILE
 
-seq "$REQUESTS" | xargs -I{} -P "$CONCURRENCY" sh -c '
+run_batch() {
+  count="$1"
+  seq "$count" | xargs -I{} -P "$CONCURRENCY" sh -c '
 out=$(curl -sS -o /dev/null -w "%{http_code} %{time_total}" \
   -H "Content-Type: application/json" \
   -X POST "$URL" \
@@ -93,6 +102,24 @@ time_s=$(echo "$out" | awk "{print \$2}")
 awk -v t="$time_s" "BEGIN { printf \"%.3f\\n\", t*1000.0 }" >> "$LAT_FILE"
 echo "$code" >> "$RES_FILE"
 '
+}
+
+if [ "$RATE_QPS" -gt 0 ]; then
+  remaining="$REQUESTS"
+  while [ "$remaining" -gt 0 ]; do
+    batch="$RATE_QPS"
+    if [ "$remaining" -lt "$batch" ]; then
+      batch="$remaining"
+    fi
+    run_batch "$batch"
+    remaining=$((remaining - batch))
+    if [ "$remaining" -gt 0 ]; then
+      sleep 1
+    fi
+  done
+else
+  run_batch "$REQUESTS"
+fi
 
 total=$(wc -l < "$RES_FILE" | tr -d ' ')
 errors=$(awk '$1 !~ /^2/ { c++ } END { print c+0 }' "$RES_FILE")

@@ -5,7 +5,6 @@ import org.apache.solr.client.solrj.SolrClient;
 import org.apache.solr.common.SolrInputDocument;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentCaptor;
 
 import static org.mockito.Mockito.*;
 
@@ -17,7 +16,7 @@ class SolrIndexServiceTest {
     @BeforeEach
     void setUp() {
         mockSolrClient = mock(SolrClient.class);
-        solrIndexService = new SolrIndexService() {
+        solrIndexService = new SolrIndexService("http://localhost:8983/solr/hybrid_collection", 1) {
             @Override
             public void indexDocument(String message) {
                 try {

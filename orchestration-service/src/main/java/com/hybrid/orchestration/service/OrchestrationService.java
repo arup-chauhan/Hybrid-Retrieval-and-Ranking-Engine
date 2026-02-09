@@ -9,7 +9,15 @@ import java.util.Map;
 @Service
 public class OrchestrationService {
 
-    private final RestTemplate restTemplate = new RestTemplate();
+    private final RestTemplate restTemplate;
+
+    public OrchestrationService() {
+        this(new RestTemplate());
+    }
+
+    public OrchestrationService(RestTemplate restTemplate) {
+        this.restTemplate = restTemplate;
+    }
 
     public void executeWorkflow() {
         restTemplate.postForObject(

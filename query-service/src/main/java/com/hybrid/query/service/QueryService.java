@@ -6,7 +6,10 @@ import com.hybrid.query.model.QueryRequest;
 import com.hybrid.query.model.QueryResult;
 import com.hybrid.query.model.RankedResult;
 import io.micrometer.core.instrument.MeterRegistry;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -15,13 +18,23 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 @Service
 public class QueryService {
+    private static final Logger log = LoggerFactory.getLogger(QueryService.class);
 
     private static final double LEXICAL_WEIGHT = 0.6;
     private static final double SEMANTIC_WEIGHT = 0.4;
     private static final int DEFAULT_TOP_K = 20;
+    private static final long DEFAULT_TOTAL_BUDGET_MS = 120L;
+    private static final long DEFAULT_VECTOR_STAGE_BUDGET_MS = 40L;
+    private static final long MIN_STAGE_BUDGET_MS = 25L;
 
     private final LexicalSearchClient lexicalSearchClient;
     private final SemanticSearchClient semanticSearchClient;
@@ -30,13 +43,26 @@ public class QueryService {
     private final QueryLogService queryLogService;
     private final HybridQueryCacheService queryCacheService;
     private final RedisQueryCacheClient redisQueryCacheClient;
+    private final long totalBudgetMs;
+    private final long vectorStageBudgetMs;
+    private final ConcurrentHashMap<String, Object> inFlightLocks = new ConcurrentHashMap<>();
 
     public QueryService(
             LexicalSearchClient lexicalSearchClient,
             SemanticSearchClient semanticSearchClient,
             ObjectMapper objectMapper
     ) {
-        this(lexicalSearchClient, semanticSearchClient, objectMapper, null, null, null, null);
+        this(
+                lexicalSearchClient,
+                semanticSearchClient,
+                objectMapper,
+                null,
+                null,
+                null,
+                null,
+                DEFAULT_TOTAL_BUDGET_MS,
+                DEFAULT_VECTOR_STAGE_BUDGET_MS
+        );
     }
 
     public QueryService(
@@ -45,7 +71,37 @@ public class QueryService {
             ObjectMapper objectMapper,
             MeterRegistry meterRegistry
     ) {
-        this(lexicalSearchClient, semanticSearchClient, objectMapper, meterRegistry, null, null, null);
+        this(
+                lexicalSearchClient,
+                semanticSearchClient,
+                objectMapper,
+                meterRegistry,
+                null,
+                null,
+                null,
+                DEFAULT_TOTAL_BUDGET_MS,
+                DEFAULT_VECTOR_STAGE_BUDGET_MS
+        );
+    }
+
+    public QueryService(
+            LexicalSearchClient lexicalSearchClient,
+            SemanticSearchClient semanticSearchClient,
+            ObjectMapper objectMapper,
+            long totalBudgetMs,
+            long vectorStageBudgetMs
+    ) {
+        this(
+                lexicalSearchClient,
+                semanticSearchClient,
+                objectMapper,
+                null,
+                null,
+                null,
+                null,
+                totalBudgetMs,
+                vectorStageBudgetMs
+        );
     }
 
     @Autowired
@@ -56,7 +112,9 @@ public class QueryService {
             MeterRegistry meterRegistry,
             QueryLogService queryLogService,
             HybridQueryCacheService queryCacheService,
-            RedisQueryCacheClient redisQueryCacheClient
+            RedisQueryCacheClient redisQueryCacheClient,
+            @Value("${query.execution.total-budget-ms:350}") long totalBudgetMs,
+            @Value("${query.execution.vector-stage-budget-ms:120}") long vectorStageBudgetMs
     ) {
         this.lexicalSearchClient = lexicalSearchClient;
         this.semanticSearchClient = semanticSearchClient;
@@ -65,16 +123,31 @@ public class QueryService {
         this.queryLogService = queryLogService;
         this.queryCacheService = queryCacheService;
         this.redisQueryCacheClient = redisQueryCacheClient;
+        this.totalBudgetMs = Math.max(100L, totalBudgetMs);
+        this.vectorStageBudgetMs = Math.max(25L, vectorStageBudgetMs);
     }
 
     public QueryResult executeHybridSearch(QueryRequest request) {
+        String generatedTraceId = UUID.randomUUID().toString();
+        return executeHybridSearch(request, generatedTraceId);
+    }
+
+    public QueryResult executeHybridSearch(QueryRequest request, String traceId) {
+        String effectiveTraceId = (traceId == null || traceId.isBlank()) ? UUID.randomUUID().toString() : traceId;
         long totalStart = System.nanoTime();
         String query = request == null ? null : request.getQuery();
         int topK = resolveTopK(request);
+        log.info("trace_id={} event=query_start query=\"{}\" top_k={}", effectiveTraceId, sanitizeForLog(query), topK);
+
         QueryResult cached = redisQueryCacheClient == null ? null : redisQueryCacheClient.get(query, topK);
         if (cached != null) {
             incrementCounter("query_result_redis_cache_hit_total");
             recordQueryLog(query, topK, totalStart, "CACHE_HIT_REDIS");
+            log.info(
+                    "trace_id={} event=query_cache_hit layer=redis total_ms={}",
+                    effectiveTraceId,
+                    elapsedMillis(totalStart)
+            );
             return copyResult(cached);
         }
         incrementCounter("query_result_redis_cache_miss_total");
@@ -83,27 +156,99 @@ public class QueryService {
         if (cached != null) {
             incrementCounter("query_result_inmemory_cache_hit_total");
             recordQueryLog(query, topK, totalStart, "CACHE_HIT_INMEMORY");
+            log.info(
+                    "trace_id={} event=query_cache_hit layer=inmemory total_ms={}",
+                    effectiveTraceId,
+                    elapsedMillis(totalStart)
+            );
             return copyResult(cached);
         }
         incrementCounter("query_result_inmemory_cache_miss_total");
 
-        String solrResponse = timedSearch(
+        String lockKey = buildCacheKey(query, topK);
+        Object lock = inFlightLocks.computeIfAbsent(lockKey, ignored -> new Object());
+        try {
+            synchronized (lock) {
+                cached = redisQueryCacheClient == null ? null : redisQueryCacheClient.get(query, topK);
+                if (cached != null) {
+                    incrementCounter("query_result_redis_cache_hit_total");
+                    recordQueryLog(query, topK, totalStart, "CACHE_HIT_REDIS");
+                    log.info(
+                            "trace_id={} event=query_cache_hit layer=redis total_ms={}",
+                            effectiveTraceId,
+                            elapsedMillis(totalStart)
+                    );
+                    return copyResult(cached);
+                }
+
+                cached = queryCacheService == null ? null : queryCacheService.get(query, topK);
+                if (cached != null) {
+                    incrementCounter("query_result_inmemory_cache_hit_total");
+                    recordQueryLog(query, topK, totalStart, "CACHE_HIT_INMEMORY");
+                    log.info(
+                            "trace_id={} event=query_cache_hit layer=inmemory total_ms={}",
+                            effectiveTraceId,
+                            elapsedMillis(totalStart)
+                    );
+                    return copyResult(cached);
+                }
+
+                return executeAndCache(query, topK, totalStart, effectiveTraceId);
+            }
+        } finally {
+            inFlightLocks.remove(lockKey, lock);
+        }
+    }
+
+    private QueryResult executeAndCache(String query, int topK, long totalStart, String effectiveTraceId) {
+
+        TimedSearchResult solrTimed = timedSearch(
                 "solr_query_latency_ms",
                 () -> lexicalSearchClient.search(query),
-                "{\"response\":{\"docs\":[]}}"
+                "{\"response\":{\"docs\":[]}}",
+                totalBudgetMs
         );
-        String vectorResponse = timedSearch(
-                "vector_query_latency_ms",
-                () -> semanticSearchClient.search(query, topK),
-                "[]"
+        String solrResponse = solrTimed.payload();
+        log.info(
+                "trace_id={} stage=lexical_search duration_ms={} outcome={} payload_bytes={}",
+                effectiveTraceId,
+                solrTimed.durationMs(),
+                solrTimed.outcome(),
+                payloadSize(solrResponse)
         );
 
+        TimedSearchResult vectorTimed = timedVectorSearch(totalStart, query, topK);
+        String vectorResponse = vectorTimed.payload();
+        log.info(
+                "trace_id={} stage=vector_search duration_ms={} outcome={} payload_bytes={}",
+                effectiveTraceId,
+                vectorTimed.durationMs(),
+                vectorTimed.outcome(),
+                payloadSize(vectorResponse)
+        );
+
+        long parseStart = System.nanoTime();
         List<DocSignal> lexicalSignals = parseSolrSignals(solrResponse);
         List<DocSignal> semanticSignals = parseVectorSignals(vectorResponse);
+        double parseDurationMs = elapsedMillis(parseStart);
+        log.info(
+                "trace_id={} stage=parse_signals duration_ms={} lexical_docs={} semantic_docs={}",
+                effectiveTraceId,
+                parseDurationMs,
+                lexicalSignals.size(),
+                semanticSignals.size()
+        );
 
         long mergeStart = System.nanoTime();
         List<RankedResult> ranked = mergeAndRank(lexicalSignals, semanticSignals, topK);
         recordTimer("ranking_merge_duration_ms", mergeStart);
+        double mergeDurationMs = elapsedMillis(mergeStart);
+        log.info(
+                "trace_id={} stage=fusion_rerank duration_ms={} ranked_docs={}",
+                effectiveTraceId,
+                mergeDurationMs,
+                ranked.size()
+        );
         incrementCounter("hybrid_query_count_total");
 
         QueryResult result = new QueryResult();
@@ -117,8 +262,20 @@ public class QueryService {
         if (queryCacheService != null) {
             queryCacheService.put(query, topK, copyResult(result));
         }
-        recordQueryLog(query, topK, totalStart, statusForQuery(query));
+        String executionStatus = executionStatus(query, solrTimed.outcome(), vectorTimed.outcome());
+        log.info(
+                "trace_id={} event=query_complete total_ms={} top_k={} status={}",
+                effectiveTraceId,
+                elapsedMillis(totalStart),
+                topK,
+                executionStatus
+        );
+        recordQueryLog(query, topK, totalStart, executionStatus);
         return result;
+    }
+
+    private String buildCacheKey(String query, int topK) {
+        return (query == null ? "" : query) + "::" + topK;
     }
 
     public String fetchFacets(String field, Integer limit) {
@@ -136,13 +293,57 @@ public class QueryService {
         }
     }
 
-    private String timedSearch(String metricName, UnsafeStringSupplier supplier, String fallback) {
+    private TimedSearchResult timedSearch(
+            String metricName,
+            UnsafeStringSupplier supplier,
+            String fallback,
+            long timeoutMs
+    ) {
         long start = System.nanoTime();
+        String value = fallback;
+        String outcome = "SUCCESS";
         try {
-            return safeSearch(supplier, fallback);
+            CompletableFuture<String> future = CompletableFuture.supplyAsync(() -> {
+                try {
+                    return supplier.get();
+                } catch (Exception ex) {
+                    throw new RuntimeException(ex);
+                }
+            });
+            String raw = future.get(Math.max(MIN_STAGE_BUDGET_MS, timeoutMs), TimeUnit.MILLISECONDS);
+            value = raw == null ? fallback : raw;
+        } catch (TimeoutException ex) {
+            outcome = "TIMEOUT";
+            incrementCounter("query_stage_timeout_total");
+        } catch (ExecutionException ex) {
+            outcome = "ERROR";
+            incrementCounter("query_stage_error_total");
+        } catch (InterruptedException ex) {
+            Thread.currentThread().interrupt();
+            outcome = "ERROR";
+            incrementCounter("query_stage_error_total");
+        } catch (Exception ex) {
+            outcome = "ERROR";
+            incrementCounter("query_stage_error_total");
         } finally {
             recordTimer(metricName, start);
         }
+        return new TimedSearchResult(value, elapsedMillis(start), outcome);
+    }
+
+    private TimedSearchResult timedVectorSearch(long totalStart, String query, int topK) {
+        long remainingMs = remainingBudgetMs(totalStart);
+        if (remainingMs < MIN_STAGE_BUDGET_MS) {
+            incrementCounter("vector_stage_skipped_budget_total");
+            return new TimedSearchResult("[]", 0.0, "SKIPPED_BUDGET");
+        }
+        long stageTimeoutMs = Math.min(vectorStageBudgetMs, remainingMs);
+        return timedSearch(
+                "vector_query_latency_ms",
+                () -> semanticSearchClient.search(query, topK),
+                "[]",
+                stageTimeoutMs
+        );
     }
 
     private List<DocSignal> parseSolrSignals(String solrJson) {
@@ -313,6 +514,43 @@ public class QueryService {
         return "SUCCESS";
     }
 
+    private static String executionStatus(String query, String lexicalOutcome, String vectorOutcome) {
+        if (query == null || query.isBlank()) {
+            return "EMPTY_QUERY";
+        }
+        if ("TIMEOUT".equals(lexicalOutcome)) {
+            return "PARTIAL_LEXICAL_TIMEOUT";
+        }
+        if ("TIMEOUT".equals(vectorOutcome) || "SKIPPED_BUDGET".equals(vectorOutcome)) {
+            return "PARTIAL_VECTOR_TIMEOUT";
+        }
+        if ("ERROR".equals(lexicalOutcome) || "ERROR".equals(vectorOutcome)) {
+            return "PARTIAL_DOWNSTREAM_ERROR";
+        }
+        return statusForQuery(query);
+    }
+
+    private static String sanitizeForLog(String query) {
+        if (query == null) {
+            return "";
+        }
+        String trimmed = query.trim().replaceAll("\\s+", " ");
+        return trimmed.length() > 120 ? trimmed.substring(0, 120) + "..." : trimmed;
+    }
+
+    private static int payloadSize(String payload) {
+        return payload == null ? 0 : payload.length();
+    }
+
+    private static double elapsedMillis(long startNanos) {
+        return (System.nanoTime() - startNanos) / 1_000_000.0;
+    }
+
+    private long remainingBudgetMs(long totalStartNanos) {
+        double elapsedMs = elapsedMillis(totalStartNanos);
+        return Math.max(0L, totalBudgetMs - (long) elapsedMs);
+    }
+
     private static QueryResult copyResult(QueryResult source) {
         QueryResult target = new QueryResult();
         target.setMessage(source.getMessage());
@@ -335,6 +573,9 @@ public class QueryService {
     }
 
     private record DocSignal(String id, String title, double score) {
+    }
+
+    private record TimedSearchResult(String payload, double durationMs, String outcome) {
     }
 
     private static class MergedSignal {

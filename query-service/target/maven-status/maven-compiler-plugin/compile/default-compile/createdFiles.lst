@@ -30,6 +30,7 @@ com/hybrid/query/grpc/HybridSearchResponseOrBuilder.class
 com/hybrid/query/service/VectorSemanticSearchClient.class
 com/hybrid/query/config/DatabaseConfig.class
 com/hybrid/query/grpc/HybridSearchRequest$Builder.class
+com/hybrid/query/config/QueryWarmupRunner.class
 com/hybrid/query/grpc/HybridQueryGrpcApi.class
 com/hybrid/query/grpc/HybridQueryServiceGrpc$HybridQueryServiceMethodDescriptorSupplier.class
 com/hybrid/query/grpc/FacetsResponse.class
@@ -48,6 +49,7 @@ com/hybrid/vector/contract/VectorContractProto.class
 com/hybrid/query/grpc/HybridQueryServiceGrpc$HybridQueryServiceStub.class
 com/hybrid/query/grpc/HybridQueryServiceGrpc$HybridQueryServiceImplBase.class
 com/hybrid/vector/contract/VectorSearchRequestOrBuilder.class
+com/hybrid/query/service/QueryService$TimedSearchResult.class
 com/hybrid/query/grpc/FacetsRequest.class
 com/hybrid/query/service/QueryService.class
 com/hybrid/query/controller/FacetController.class

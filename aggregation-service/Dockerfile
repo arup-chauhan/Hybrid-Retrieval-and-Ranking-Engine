@@ -1,5 +1,6 @@
-FROM openjdk:17-jdk-slim
+FROM eclipse-temurin:17-jre-jammy
 WORKDIR /app
-COPY target/aggregation-service-1.0.0.jar aggregation-service.jar
+ARG JAR_FILE=target/*.jar
+COPY ${JAR_FILE} app.jar
 EXPOSE 8086
-ENTRYPOINT ["java", "-jar", "aggregation-service.jar"]
+ENTRYPOINT ["java", "-jar", "app.jar"]

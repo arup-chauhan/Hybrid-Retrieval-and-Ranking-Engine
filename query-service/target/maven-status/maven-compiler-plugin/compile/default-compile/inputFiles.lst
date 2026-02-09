@@ -25,6 +25,7 @@
 /Users/arup/Documents/Projects/Individual Projects/Hybrid-Retrieval-and-Ranking-Engine/query-service/target/generated-sources/protobuf/java/com/hybrid/vector/contract/VectorContractProto.java
 /Users/arup/Documents/Projects/Individual Projects/Hybrid-Retrieval-and-Ranking-Engine/query-service/target/generated-sources/protobuf/java/com/hybrid/vector/contract/VectorHit.java
 /Users/arup/Documents/Projects/Individual Projects/Hybrid-Retrieval-and-Ranking-Engine/query-service/target/generated-sources/protobuf/java/com/hybrid/vector/contract/VectorHitOrBuilder.java
+/Users/arup/Documents/Projects/Individual Projects/Hybrid-Retrieval-and-Ranking-Engine/query-service/src/main/java/com/hybrid/query/config/QueryWarmupRunner.java
 /Users/arup/Documents/Projects/Individual Projects/Hybrid-Retrieval-and-Ranking-Engine/query-service/src/main/java/com/hybrid/query/config/DatabaseConfig.java
 /Users/arup/Documents/Projects/Individual Projects/Hybrid-Retrieval-and-Ranking-Engine/query-service/src/main/java/com/hybrid/query/service/HybridQueryCacheService.java
 /Users/arup/Documents/Projects/Individual Projects/Hybrid-Retrieval-and-Ranking-Engine/query-service/target/generated-sources/protobuf/grpc-java/com/hybrid/query/grpc/HybridQueryServiceGrpc.java

@@ -6,6 +6,8 @@ import com.hybrid.query.service.QueryService;
 import io.grpc.stub.StreamObserver;
 import org.springframework.stereotype.Component;
 
+import java.util.UUID;
+
 @Component
 public class HybridQueryGrpcApi extends HybridQueryServiceGrpc.HybridQueryServiceImplBase {
 
@@ -23,7 +25,8 @@ public class HybridQueryGrpcApi extends HybridQueryServiceGrpc.HybridQueryServic
             internalRequest.setTopK(request.getTopK());
         }
 
-        QueryResult result = queryService.executeHybridSearch(internalRequest);
+        String traceId = "grpc-" + UUID.randomUUID();
+        QueryResult result = queryService.executeHybridSearch(internalRequest, traceId);
         HybridSearchResponse.Builder builder = HybridSearchResponse.newBuilder()
                 .setMessage(safe(result.getMessage()))
                 .setSolrResult(safe(result.getSolrResult()))

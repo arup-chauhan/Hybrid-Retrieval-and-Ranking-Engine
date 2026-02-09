@@ -1,5 +1,6 @@
-FROM openjdk:17-jdk-slim
+FROM eclipse-temurin:17-jre-jammy
 WORKDIR /app
-COPY target/fusion-service-1.0.0.jar app.jar
+ARG JAR_FILE=target/*.jar
+COPY ${JAR_FILE} app.jar
 EXPOSE 8088
 ENTRYPOINT ["java", "-jar", "app.jar"]

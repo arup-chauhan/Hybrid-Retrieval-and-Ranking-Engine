@@ -1,1 +1,4 @@
+com/hybrid/aggregation/service/AggregationService.class
 com/hybrid/aggregation/AggregationApplication.class
+com/hybrid/aggregation/model/AggregatedResult.class
+com/hybrid/aggregation/controller/AggregationController.class

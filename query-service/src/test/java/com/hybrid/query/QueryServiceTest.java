@@ -135,4 +135,38 @@ class QueryServiceTests {
         assertThat(result.getRankedResults().get(0).getLexicalScore()).isGreaterThan(0.0);
         assertThat(result.getRankedResults().get(1).getTitle()).isEqualTo("Array Title B");
     }
+
+    @Test
+    void testHybridSearchFallsBackToLexicalWhenVectorTimesOut() {
+        SolrLexicalSearchClient solrClient = new SolrLexicalSearchClient("http://localhost:8983") {
+            @Override
+            public String search(String query) {
+                return "{\"response\":{\"docs\":[{\"id\":\"doc-500\",\"title\":\"Only Lexical\",\"score\":5.0}]}}";
+            }
+        };
+
+        VectorSemanticSearchClient vectorClient = new VectorSemanticSearchClient("http://localhost:8084") {
+            @Override
+            public String search(String query, Integer topK) {
+                try {
+                    Thread.sleep(250);
+                } catch (InterruptedException ex) {
+                    Thread.currentThread().interrupt();
+                }
+                return "[{\"documentId\":\"doc-999\",\"similarityScore\":0.99}]";
+            }
+        };
+
+        QueryService queryService = new QueryService(solrClient, vectorClient, new ObjectMapper(), 120, 60);
+
+        QueryRequest req = new QueryRequest();
+        req.setQuery("timeout");
+
+        QueryResult result = queryService.executeHybridSearch(req, "test-trace");
+
+        assertThat(result).isNotNull();
+        assertThat(result.getVectorResult()).isEqualTo("[]");
+        assertThat(result.getRankedResults()).hasSize(1);
+        assertThat(result.getRankedResults().get(0).getId()).isEqualTo("doc-500");
+    }
 }
