@@ -226,6 +226,15 @@ Validation workflow (for 500K target):
 TARGET_DOCS=500000 CONCURRENCY=40 BENCH_REQUESTS=100 BENCH_CONCURRENCY=20 BENCH_RATE_QPS=12 ./scripting/validate-500k-e2e.sh
 ```
 
+Preset dataset runners:
+
+```bash
+./scripting/run_50k_doc_engine.sh
+./scripting/run_100k_doc_engine.sh
+./scripting/run_250k_doc_engine.sh
+./scripting/run_500k_doc_engine.sh
+```
+
 Paced validator smoke (quick end-to-end dry run of the same flow):
 
 ```bash
