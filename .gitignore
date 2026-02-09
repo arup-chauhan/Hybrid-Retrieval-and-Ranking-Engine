@@ -13,3 +13,6 @@ Walkthroughs/ERRORS_AND_FIXES_LIVING_LOG.md
 docs/benchmarks/500k-*/
 airflow/logs/*
 !airflow/logs/.gitkeep
+
+airflow/dags/__pycache__/
+*.pyc
