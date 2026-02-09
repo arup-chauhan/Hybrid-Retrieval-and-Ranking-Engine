@@ -94,6 +94,7 @@ Core services in the platform:
 - `gateway-service`: edge routing, retries, auth enforcement, and fallback behavior
 - `monitoring-service`: metrics exposure and runtime health signal surface
 - `orchestration-service`: pipeline coordination and scheduled workflows
+- `frontend-service`: Next.js search UI with lexical/semantic/hybrid score-mode toggle
 
 ## Data and Query Flow
 
@@ -229,6 +230,7 @@ TARGET_DOCS=500000 CONCURRENCY=40 BENCH_REQUESTS=100 BENCH_CONCURRENCY=20 BENCH_
 Preset dataset runners:
 
 ```bash
+./scripting/run_25k_doc_engine.sh
 ./scripting/run_50k_doc_engine.sh
 ./scripting/run_100k_doc_engine.sh
 ./scripting/run_250k_doc_engine.sh
@@ -323,6 +325,12 @@ make up
 Quick walkthrough:
 
 - `docs/demo.md`
+
+Frontend UI:
+
+- URL: `http://localhost:3001`
+- Env override for API base: `NEXT_PUBLIC_QUERY_API_BASE`
+- Optional component: backend services and curl-based search workflows run unchanged without `frontend-service`.
 
 Stop local stack:
 

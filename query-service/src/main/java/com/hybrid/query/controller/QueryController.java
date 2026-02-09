@@ -10,6 +10,7 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/search")
+@CrossOrigin(origins = "*")
 public class QueryController {
 
     @Autowired

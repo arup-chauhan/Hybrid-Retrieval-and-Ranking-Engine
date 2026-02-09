@@ -157,6 +157,15 @@ services:
     depends_on:
       - gateway-service
 
+  frontend-service:
+    build: ./frontend-service
+    ports:
+      - "${FRONTEND_HOST_PORT:-3001}:3000"
+    environment:
+      NEXT_PUBLIC_QUERY_API_BASE: "http://localhost:${QUERY_HOST_PORT:-8083}"
+    depends_on:
+      - query-service
+
   airflow-db:
     image: postgres:15
     environment:
