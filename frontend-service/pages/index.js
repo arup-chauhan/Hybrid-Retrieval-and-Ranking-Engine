@@ -11,8 +11,15 @@ export default function Home() {
   const [result, setResult] = useState(null);
 
   const viewResults = useMemo(() => {
-    if (!result || !Array.isArray(result.results)) return [];
-    const items = [...result.results];
+    if (!result) return [];
+    const rawResults = Array.isArray(result.results)
+      ? result.results
+      : Array.isArray(result.rankedResults)
+        ? result.rankedResults
+        : [];
+    if (!rawResults.length) return [];
+
+    const items = [...rawResults];
     if (mode === "lexical") {
       items.sort((a, b) => (b.lexicalScore || 0) - (a.lexicalScore || 0));
     } else if (mode === "semantic") {
@@ -112,6 +119,7 @@ export default function Home() {
           <>
             <p className="sub">
               traceId: {result.traceId || "n/a"} | status: {result.status || "n/a"}
+              {result.message ? ` | message: ${result.message}` : ""}
             </p>
             <ul>
               {viewResults.map((item, idx) => (

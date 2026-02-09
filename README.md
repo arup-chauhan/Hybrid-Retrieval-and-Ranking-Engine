@@ -15,9 +15,11 @@ A production-ready distributed search platform that combines lexical and semanti
 - [Storage Layer](#storage-layer)
 - [Observability and SLOs](#observability-and-slos)
 - [Performance Profile](#performance-profile)
+- [Latency Optimization](#latency-optimization)
 - [Local Deployment](#local-deployment)
 - [Kubernetes Deployment](#kubernetes-deployment)
 - [Batch and Refresh Workflows](#batch-and-refresh-workflows)
+- [Custom Search Base](#custom-search-base)
 - [Repository Layout](#repository-layout)
 
 ## Overview
