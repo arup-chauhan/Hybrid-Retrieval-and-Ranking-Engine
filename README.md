@@ -230,6 +230,7 @@ TARGET_DOCS=500000 CONCURRENCY=40 BENCH_REQUESTS=100 BENCH_CONCURRENCY=20 BENCH_
 Preset dataset runners:
 
 ```bash
+./scripting/run_5k_doc_engine.sh
 ./scripting/run_25k_doc_engine.sh
 ./scripting/run_50k_doc_engine.sh
 ./scripting/run_100k_doc_engine.sh
