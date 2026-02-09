@@ -11,6 +11,8 @@ import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.web.reactive.function.client.WebClient;
 
 import java.util.ArrayList;
@@ -22,6 +24,7 @@ import java.time.Duration;
 @Service
 public class VectorSemanticSearchClient implements SemanticSearchClient, DisposableBean {
 
+    private static final Logger log = LoggerFactory.getLogger(VectorSemanticSearchClient.class);
     private final WebClient webClient;
     private final boolean grpcEnabled;
     private final ManagedChannel grpcChannel;
@@ -95,6 +98,7 @@ public class VectorSemanticSearchClient implements SemanticSearchClient, Disposa
             }
             return objectMapper.writeValueAsString(hits);
         } catch (Exception ex) {
+            log.warn("gRPC vector search failed, falling back to empty result set", ex);
             return "[]";
         }
     }

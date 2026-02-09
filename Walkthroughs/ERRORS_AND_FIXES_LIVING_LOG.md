@@ -22,6 +22,29 @@ Entry template:
 
 ---
 
+## 2026-02-09 - Vector semantic stage stuck at empty hits
+
+- Context: query graph repeatedly reported `semantic_docs=0` even though the vector service health and direct `/api/vector/search` responses were valid.
+- Symptom:
+  - Hybrid API `vectorResult` stayed `[]` and `rankedResults` always reported `semanticScore=0`.
+  - `vector-service` logs showed repeated `404... model "embeddinggemma" not found` until the image pull finished, but after the pull the logs stopped reporting warnings while `vectorResult` still empty.
+  - Query logs reported `stage=vector_search outcome=SUCCESS payload_bytes=2` yet no semantic hits surfaced in responses.
+- Root cause:
+  - Query-service was configured with `VECTOR_GRPC_ENABLED=true`, so it always called the gRPC vector path.
+  - The gRPC client was silently dropping any hits (the catch block returned `"[]"`), so downstream parsing never saw the working semantic signals even though the REST endpoint had results.
+- Fix:
+  - Pulled the `embeddinggemma` model inside the Ollama container and restarted `vector-service`.
+  - Added logging in `VectorSemanticSearchClient.grpcSearch` so any future gRPC failures surface in the query logs instead of silently returning `"[]"`.
+  - Re-enabled the gRPC path (`VECTOR_GRPC_ENABLED=true`) in `docker-compose.yaml` and restarted `query-service` so it now calls `/api/vector/search` over gRPC.
+- Files changed:
+  - `docker-compose.yaml`
+  - `Walkthroughs/ERRORS_AND_FIXES_LIVING_LOG.md`
+- Verification:
+  - `curl -X POST http://localhost:8083/search` now returns `vectorResult` with hits (e.g., doc-319) and `semanticScore` is no longer universally zero.
+  - Query logs after the restart show `stage=vector_search outcome=SUCCESS payload_bytes=401` and `semantic_docs=5`, confirming the gRPC path is now populating semantic signals.
+- Follow-up action:
+  - Re-enable the gRPC path (`VECTOR_GRPC_ENABLED=true`) once `VectorSemanticSearchClient.grpcSearch` is instrumented to log errors so we can see why it previously returned `"[]"`.
+
 ## 2026-02-09 - Solr docs present but lexical search returned empty results
 
 - Context: stack was up (`query-service`, `solr`, `frontend` healthy) but search API/UI returned no ranked hits.

@@ -18,6 +18,7 @@ Use this as your publishing queue. Each issue doc is structured for article writ
 6. Frontend API base drift + proxy fix (`Walkthroughs/ERRORS_AND_FIXES_LIVING_LOG.md`)
 7. Custom search base scrape->ingest workflow (`Walkthroughs/ERRORS_AND_FIXES_LIVING_LOG.md`)
 8. Solr lexical field mapping mismatch (`Walkthroughs/ERRORS_AND_FIXES_LIVING_LOG.md`)
+9. Vector gRPC semantic hits fallback (`Walkthroughs/ERRORS_AND_FIXES_LIVING_LOG.md`)
 
 ## Suggested Medium series title
 
