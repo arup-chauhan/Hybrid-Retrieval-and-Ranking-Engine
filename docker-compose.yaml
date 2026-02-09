@@ -151,6 +151,72 @@ services:
     depends_on:
       - gateway-service
 
+  airflow-db:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: airflow
+      POSTGRES_PASSWORD: airflow
+      POSTGRES_DB: airflow
+    volumes:
+      - airflow-db-data:/var/lib/postgresql/data
+
+  airflow-init:
+    image: apache/airflow:2.9.3
+    depends_on:
+      - airflow-db
+    environment:
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@airflow-db:5432/airflow
+      AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+      AIRFLOW__CORE__FERNET_KEY: 7P3hUDRjvYhh47rb7afGSEfBH6hEwMwqRtVtTQKQ-Q8=
+    volumes:
+      - ./airflow/dags:/opt/airflow/dags
+      - ./airflow/logs:/opt/airflow/logs
+      - ./airflow/plugins:/opt/airflow/plugins
+    command: >
+      bash -c "airflow db migrate &&
+               airflow users create --username admin --firstname Airflow --lastname Admin --role Admin --email admin@example.com --password admin || true"
+
+  airflow-webserver:
+    image: apache/airflow:2.9.3
+    depends_on:
+      - airflow-db
+      - airflow-init
+      - orchestration-service
+      - ingestion-service
+      - query-service
+    environment:
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@airflow-db:5432/airflow
+      AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+      AIRFLOW__CORE__FERNET_KEY: 7P3hUDRjvYhh47rb7afGSEfBH6hEwMwqRtVtTQKQ-Q8=
+    volumes:
+      - ./airflow/dags:/opt/airflow/dags
+      - ./airflow/logs:/opt/airflow/logs
+      - ./airflow/plugins:/opt/airflow/plugins
+    ports:
+      - "8088:8080"
+    command: webserver
+
+  airflow-scheduler:
+    image: apache/airflow:2.9.3
+    depends_on:
+      - airflow-db
+      - airflow-init
+      - orchestration-service
+      - ingestion-service
+      - query-service
+    environment:
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@airflow-db:5432/airflow
+      AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+      AIRFLOW__CORE__FERNET_KEY: 7P3hUDRjvYhh47rb7afGSEfBH6hEwMwqRtVtTQKQ-Q8=
+    volumes:
+      - ./airflow/dags:/opt/airflow/dags
+      - ./airflow/logs:/opt/airflow/logs
+      - ./airflow/plugins:/opt/airflow/plugins
+    command: scheduler
+
   prometheus:
     image: prom/prometheus:v2.54.1
     ports:
@@ -185,3 +251,4 @@ networks:
 volumes:
   solr-data:
   postgres-data:
+  airflow-db-data:

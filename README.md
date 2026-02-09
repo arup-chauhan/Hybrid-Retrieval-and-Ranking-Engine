@@ -310,13 +310,33 @@ kubectl apply -f k8s/
 
 ## Batch and Refresh Workflows
 
-Batch and refresh workflows are planned but not yet implemented with Apache Airflow in this repository.
+Batch and refresh workflows are implemented with Apache Airflow in this repository.
 
 Current state:
 
 - Online path is implemented in service runtime (`ingestion-service`, `indexing-service`, `query-service`).
 - 500K validation and benchmark automation is provided via scripts under `scripting/`.
-- Airflow DAGs for scheduled refresh/control-plane jobs are a pending enhancement.
+- Airflow DAGs live under `airflow/dags/`.
+
+Airflow stack (local, Docker Compose):
+
+```bash
+docker-compose -p hybrid-retrieval-and-ranking-engine up -d airflow-db airflow-init airflow-webserver airflow-scheduler
+```
+
+Access Airflow UI:
+
+- URL: `http://localhost:8088`
+- default credentials: `admin` / `admin`
+
+Bundled DAG:
+
+- `hybrid_control_plane_dag`
+  - schedule: every 6 hours
+  - tasks:
+    - trigger orchestration flow (`POST /orchestrate/trigger`)
+    - ingestion probe (`POST /api/ingest`)
+    - query probe (`POST /search`)
 
 ## Repository Layout
 
