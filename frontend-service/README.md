@@ -13,14 +13,14 @@ Default URL: `http://localhost:3000`
 
 ## API configuration
 
-Set query API base:
+Set frontend proxy upstream:
 
 ```bash
-NEXT_PUBLIC_QUERY_API_BASE=http://localhost:18083
+QUERY_API_BASE=http://query-service:8083
 ```
 
 ## Vercel deployment
 
 1. Import `frontend-service` as a Vercel project.
-2. Set env var `NEXT_PUBLIC_QUERY_API_BASE` to your public query/gateway endpoint.
+2. Set env var `QUERY_API_BASE` to your public query/gateway endpoint.
 3. Deploy.

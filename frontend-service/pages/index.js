@@ -10,8 +10,6 @@ export default function Home() {
   const [error, setError] = useState("");
   const [result, setResult] = useState(null);
 
-  const apiBase = process.env.NEXT_PUBLIC_QUERY_API_BASE || "http://localhost:18083";
-
   const viewResults = useMemo(() => {
     if (!result || !Array.isArray(result.results)) return [];
     const items = [...result.results];
@@ -31,7 +29,7 @@ export default function Home() {
     setError("");
 
     try {
-      const response = await fetch(`${apiBase}/search`, {
+      const response = await fetch(`/api/search`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -99,7 +97,7 @@ export default function Home() {
         </form>
 
         <div className="meta">
-          <span>API: {apiBase}</span>
+          <span>API: /api/search (frontend proxy)</span>
           <span>
             Note: mode toggles result ordering by score type in UI (hybrid/lexical/semantic).
           </span>

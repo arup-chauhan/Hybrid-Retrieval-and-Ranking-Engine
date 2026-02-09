@@ -330,7 +330,7 @@ Quick walkthrough:
 Frontend UI:
 
 - URL: `http://localhost:3001`
-- Env override for API base: `NEXT_PUBLIC_QUERY_API_BASE`
+- Env override for frontend proxy upstream: `QUERY_API_BASE`
 - Optional component: backend services and curl-based search workflows run unchanged without `frontend-service`.
 
 Stop local stack:
@@ -385,6 +385,44 @@ Bundled DAG:
     - trigger orchestration flow (`POST /orchestrate/trigger`)
     - ingestion probe (`POST /api/ingest`)
     - query probe (`POST /search`)
+
+## Custom Search Base
+
+Use this when you want domain-specific data (for example Hot Wheels, FIFA 26, or any website corpus) instead of synthetic load.
+
+Step 1: scrape site pages into a dataset file (JSONL recommended):
+
+```bash
+python3 ./scripting/web_dataset_scraper.py \
+  --start-url "https://example.com" \
+  --depth 2 \
+  --max-pages 500 \
+  --format jsonl \
+  --output ./data/custom-domain.jsonl
+```
+
+Step 2: ingest the generated file into `ingestion-service`:
+
+```bash
+INPUT_PATH=./data/custom-domain.jsonl \
+INPUT_FORMAT=jsonl \
+INGEST_URL=http://localhost:18081/api/ingest \
+CONCURRENCY=20 \
+./scripting/load-ingestion-file.sh
+```
+
+Step 3: query the indexed custom dataset:
+
+```bash
+curl -s -X POST http://localhost:18083/search \
+  -H "Content-Type: application/json" \
+  -d '{"query":"custom keyword","topK":10}'
+```
+
+Protocol note:
+
+- Ingestion path currently uses REST (`POST /api/ingest`).
+- gRPC in this repository is for query/vector contracts, not ingestion.
 
 ## Repository Layout
 

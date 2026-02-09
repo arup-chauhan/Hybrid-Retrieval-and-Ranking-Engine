@@ -162,7 +162,7 @@ services:
     ports:
       - "${FRONTEND_HOST_PORT:-3001}:3000"
     environment:
-      NEXT_PUBLIC_QUERY_API_BASE: "http://localhost:${QUERY_HOST_PORT:-8083}"
+      QUERY_API_BASE: "http://query-service:8083"
     depends_on:
       - query-service
 
