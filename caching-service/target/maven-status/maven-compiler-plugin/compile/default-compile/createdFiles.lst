@@ -1,4 +1,0 @@
-com/hybrid/caching/config/RedisConfig.class
-com/hybrid/caching/controller/CacheController.class
-com/hybrid/caching/CachingApplication.class
-com/hybrid/caching/service/CacheService.class

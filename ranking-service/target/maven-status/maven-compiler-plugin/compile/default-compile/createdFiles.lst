@@ -1,6 +1,0 @@
-com/hybrid/ranking/model/RankedDocument.class
-com/hybrid/ranking/service/MLRankerService.class
-com/hybrid/ranking/service/RankingService.class
-com/hybrid/ranking/RankingApplication.class
-com/hybrid/ranking/service/FeatureExtractor.class
-com/hybrid/ranking/controller/RankingController.class

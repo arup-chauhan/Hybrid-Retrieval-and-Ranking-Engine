@@ -1,4 +1,0 @@
-com/hybrid/monitoring/MonitoringApplication.class
-com/hybrid/monitoring/controller/HealthController.class
-com/hybrid/monitoring/service/MetricsService.class
-com/hybrid/monitoring/config/PrometheusConfig.class

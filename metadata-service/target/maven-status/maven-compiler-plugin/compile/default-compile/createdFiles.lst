@@ -1,5 +1,0 @@
-com/hybrid/metadata/MetadataApplication.class
-com/hybrid/metadata/controller/MetadataController.class
-com/hybrid/metadata/service/MetadataService.class
-com/hybrid/metadata/repository/MetadataRepository.class
-com/hybrid/metadata/model/MetadataRecord.class

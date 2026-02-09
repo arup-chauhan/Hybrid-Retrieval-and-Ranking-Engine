@@ -1,5 +1,0 @@
-com/hybrid/ingestion/config/KafkaProducerConfig.class
-com/hybrid/ingestion/IngestionApplication.class
-com/hybrid/ingestion/controller/IngestionController.class
-com/hybrid/ingestion/model/DocumentRequest.class
-com/hybrid/ingestion/service/IngestionService.class

@@ -1,8 +1,0 @@
-server:
-  port: 8086
-spring:
-  application:
-    name: aggregation-service
-logging:
-  level:
-    root: INFO
