@@ -20,3 +20,19 @@ CREATE TABLE IF NOT EXISTS query_logs (
     status TEXT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+CREATE TABLE IF NOT EXISTS documents (
+    id TEXT PRIMARY KEY,
+    title TEXT,
+    content TEXT,
+    metadata TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS document_metadata (
+    id TEXT PRIMARY KEY,
+    title TEXT,
+    category TEXT,
+    indexed_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);

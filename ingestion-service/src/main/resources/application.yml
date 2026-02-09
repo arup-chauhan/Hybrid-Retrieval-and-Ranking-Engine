@@ -13,4 +13,4 @@ spring:
 
 app:
   kafka:
-    topic: ingestion-topic
+    topic: ${APP_KAFKA_TOPIC:ingestion-topic}

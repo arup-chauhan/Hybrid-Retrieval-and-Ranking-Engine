@@ -9,3 +9,5 @@ GAPS_TODO.md
 .DS_Store
 **/.DS_Store
 Walkthroughs/
+Walkthroughs/ERRORS_AND_FIXES_LIVING_LOG.md
+docs/benchmarks/500k-*/

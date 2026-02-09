@@ -6,11 +6,11 @@ This script gives a fast, public-facing walkthrough of ingestion, hybrid retriev
 
 ```bash
 mvn clean package
-docker-compose up --build -d
+docker-compose -p hybrid-retrieval-and-ranking-engine up --build -d
 ```
 
 Expected:
-- All containers show `Up` in `docker-compose ps`.
+- All containers show `Up` in `docker-compose -p hybrid-retrieval-and-ranking-engine ps`.
 
 ## 2) Verify platform health
 
@@ -82,5 +82,5 @@ Expected:
 ## Stop the stack
 
 ```bash
-docker-compose down
+docker-compose -p hybrid-retrieval-and-ranking-engine down
 ```

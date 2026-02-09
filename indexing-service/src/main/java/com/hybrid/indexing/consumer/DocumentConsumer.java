@@ -26,7 +26,10 @@ public class DocumentConsumer {
         this.vectorMetadataService = vectorMetadataService;
     }
 
-    @KafkaListener(topics = "ingestion-topic", groupId = "indexing-group")
+    @KafkaListener(
+            topics = "${app.kafka.topic:ingestion-topic}",
+            groupId = "${spring.kafka.consumer.group-id:indexing-group}"
+    )
     public void consume(String message) {
         solrIndexService.indexDocument(message);
         try {

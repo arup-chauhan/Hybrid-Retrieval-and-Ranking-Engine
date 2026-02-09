@@ -1,3 +1,5 @@
+name: hybrid-retrieval-and-ranking-engine-indexing
+
 version: "3.8"
 services:
   zookeeper:
@@ -24,7 +26,6 @@ services:
 
   solr:
     image: solr:9.6
-    container_name: solr
     ports:
       - "8983:8983"
     volumes:
@@ -46,7 +47,6 @@ services:
 
   postgres:
     image: postgres:15
-    container_name: metadata_db
     ports:
       - "5432:5432"
     environment:
@@ -56,5 +56,5 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
 
-  volumes:
-    pgdata:
+volumes:
+  pgdata:

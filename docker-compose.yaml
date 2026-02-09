@@ -1,3 +1,5 @@
+name: hybrid-retrieval-and-ranking-engine
+
 services:
   zookeeper:
     image: confluentinc/cp-zookeeper:7.6.1
@@ -23,11 +25,10 @@ services:
   redis:
     image: redis:7.2
     ports:
-      - "6379:6379"
+      - "6380:6379"
 
   solr:
     image: solr:9.4
-    container_name: solr
     command: ["solr-fg", "-c", "-z", "zookeeper:2181"]
     ports:
       - "8983:8983"
@@ -57,7 +58,7 @@ services:
       - "8081:8081"
     environment:
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
-      APP_KAFKA_TOPIC: ingestion-topic
+      APP_KAFKA_TOPIC: ${APP_KAFKA_TOPIC:-ingestion-topic}
     depends_on:
       - kafka
 
@@ -67,6 +68,11 @@ services:
       - "8082:8082"
     environment:
       SPRING_KAFKA_CONSUMER_BOOTSTRAP_SERVERS: kafka:9092
+      SPRING_KAFKA_CONSUMER_GROUP_ID: ${INDEXING_CONSUMER_GROUP_ID:-indexing-group}
+      APP_KAFKA_TOPIC: ${APP_KAFKA_TOPIC:-ingestion-topic}
+      SOLR_BATCH_SIZE: ${SOLR_BATCH_SIZE:-500}
+      SOLR_COMMIT_INTERVAL_MS: ${SOLR_COMMIT_INTERVAL_MS:-2000}
+      VECTOR_EMBEDDING_FAST_VALIDATION_MODE: ${VECTOR_EMBEDDING_FAST_VALIDATION_MODE:-false}
     depends_on:
       - solr
       - kafka
@@ -80,9 +86,11 @@ services:
       VECTOR_GRPC_ENABLED: "true"
       VECTOR_GRPC_HOST: vector-service
       VECTOR_GRPC_PORT: 9094
+      CACHING_URL: http://caching-service:8096
     depends_on:
       - solr
       - vector-service
+      - caching-service
 
   ranking-service:
     build: ./ranking-service

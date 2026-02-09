@@ -107,8 +107,8 @@ Query flow:
 
 1. Client sends search request to gateway/query path.
 2. Query service executes parallel lexical and semantic retrieval.
-3. Ranking/fusion services merge signals into final ranked top-k response.
-4. Cache is populated/checked for repeated query acceleration.
+3. Query service merges lexical and semantic signals into final ranked top-k response.
+4. Redis-backed cache is populated/checked for repeated query acceleration via `caching-service`.
 5. Query and stage metrics are emitted for observability.
 
 ## APIs
@@ -117,7 +117,7 @@ Query flow:
 
 - `POST /search` - hybrid search request
 - `GET /facets` - facet and filter metadata retrieval
-- `GET /health` - service health checks
+- `GET /actuator/health` - service health checks
 - Domain APIs for ingestion, ranking, fusion, metadata, and orchestration operations
 
 Example:
@@ -204,14 +204,27 @@ Primary service objectives:
 
 ## Performance Profile
 
-Validated benchmark profile:
+Benchmark definitions used in this project:
 
-- Dataset: 500,000+ documents
+- `cold run`: the first benchmark pass after service restart or fresh validation run; caches are not pre-warmed.
+- `warm run`: the immediate second benchmark pass with the same setup; caches/JIT/routes are already warmed.
+- `p95 latency`: 95th percentile end-to-end request latency; 95% of requests complete at or below this time.
+- `SLO pass`: `p95 < 200ms` and error rate `< 1%` for the benchmark pass.
+
+Target benchmark profile:
+
+- Dataset target: 500,000+ documents
 - Query mix: lexical+semantic hybrid dominant
 - Concurrency: 20 virtual users
 - Sustained load: 10-15 QPS
 - Result size: top-k = 20
 - SLO: p95 hybrid latency < 200ms
+
+Validation workflow (for 500K target):
+
+```bash
+TARGET_DOCS=500000 CONCURRENCY=40 BENCH_REQUESTS=100 BENCH_CONCURRENCY=20 ./scripting/validate-500k-e2e.sh
+```
 
 Latency budget model:
 
@@ -265,7 +278,7 @@ Build and run:
 git clone https://github.com/Arup-Chauhan/Hybrid-Retrieval-and-Ranking-Engine.git
 cd Hybrid-Retrieval-and-Ranking-Engine
 mvn clean package
-docker-compose up --build -d
+docker-compose -p hybrid-retrieval-and-ranking-engine up --build -d
 ```
 
 Quick walkthrough:
@@ -275,7 +288,7 @@ Quick walkthrough:
 Stop local stack:
 
 ```bash
-docker-compose down
+docker-compose -p hybrid-retrieval-and-ranking-engine down
 ```
 
 ## Kubernetes Deployment
@@ -297,28 +310,13 @@ kubectl apply -f k8s/
 
 ## Batch and Refresh Workflows
 
-Apache Airflow is used for batch and refresh workflows that are not part of the online query path.
+Batch and refresh workflows are planned but not yet implemented with Apache Airflow in this repository.
 
-Primary workflow:
+Current state:
 
-- `embedding_refresh` (manual or scheduled trigger)
-  - Select documents requiring vector refresh
-  - Generate embeddings via Ollama
-  - Upsert embeddings into PostgreSQL + pgvector
-  - Refresh related metadata/index references
-  - Emit workflow summary metrics and status
-
-Additional refresh workflows:
-
-- `index_refresh`: Solr index/schema-driven refresh jobs
-- `metadata_refresh`: metadata/facet recomputation
-- `cache_refresh`: Redis invalidation/warmup after retrieval/ranking changes
-- `quality_refresh`: retrieval/ranking evaluation pass (for example Recall@K, NDCG)
-
-Design boundary:
-
-- Airflow handles batch control-plane jobs.
-- Real-time request orchestration remains in gateway/query/ranking services.
+- Online path is implemented in service runtime (`ingestion-service`, `indexing-service`, `query-service`).
+- 500K validation and benchmark automation is provided via scripts under `scripting/`.
+- Airflow DAGs for scheduled refresh/control-plane jobs are a pending enhancement.
 
 ## Repository Layout
 

@@ -14,18 +14,22 @@ public class CacheController {
     }
 
     @PostMapping("/put")
-    public String put(@RequestParam String key, @RequestBody Object value, @RequestParam long ttl) {
+    public String put(
+            @RequestParam("key") String key,
+            @RequestBody Object value,
+            @RequestParam("ttl") long ttl
+    ) {
         cacheService.put(key, value, ttl);
         return "Cached successfully";
     }
 
     @GetMapping("/get")
-    public Object get(@RequestParam String key) {
+    public Object get(@RequestParam("key") String key) {
         return cacheService.get(key);
     }
 
     @DeleteMapping("/evict")
-    public String evict(@RequestParam String key) {
+    public String evict(@RequestParam("key") String key) {
         cacheService.evict(key);
         return "Key evicted";
     }

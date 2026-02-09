@@ -7,6 +7,7 @@
 /Users/arup/Documents/Projects/Individual Projects/Hybrid-Retrieval-and-Ranking-Engine/query-service/target/generated-sources/protobuf/java/com/hybrid/query/grpc/FacetsResponse.java
 /Users/arup/Documents/Projects/Individual Projects/Hybrid-Retrieval-and-Ranking-Engine/query-service/target/generated-sources/protobuf/java/com/hybrid/query/grpc/FacetsRequestOrBuilder.java
 /Users/arup/Documents/Projects/Individual Projects/Hybrid-Retrieval-and-Ranking-Engine/query-service/target/generated-sources/protobuf/java/com/hybrid/vector/contract/VectorSearchRequestOrBuilder.java
+/Users/arup/Documents/Projects/Individual Projects/Hybrid-Retrieval-and-Ranking-Engine/query-service/src/main/java/com/hybrid/query/service/RedisQueryCacheClient.java
 /Users/arup/Documents/Projects/Individual Projects/Hybrid-Retrieval-and-Ranking-Engine/query-service/target/generated-sources/protobuf/java/com/hybrid/vector/contract/VectorSearchResponse.java
 /Users/arup/Documents/Projects/Individual Projects/Hybrid-Retrieval-and-Ranking-Engine/query-service/target/generated-sources/protobuf/java/com/hybrid/vector/contract/VectorSearchResponseOrBuilder.java
 /Users/arup/Documents/Projects/Individual Projects/Hybrid-Retrieval-and-Ranking-Engine/query-service/target/generated-sources/protobuf/java/com/hybrid/query/grpc/HybridSearchResponse.java

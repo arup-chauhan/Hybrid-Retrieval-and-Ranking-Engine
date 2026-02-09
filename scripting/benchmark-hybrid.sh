@@ -10,6 +10,7 @@ CONCURRENCY="${CONCURRENCY:-20}"
 P95_TARGET_MS="${P95_TARGET_MS:-200}"
 ERROR_RATE_TARGET_PCT="${ERROR_RATE_TARGET_PCT:-1}"
 OUT_DIR="${OUT_DIR:-/tmp/hybrid-benchmark}"
+COMPOSE_PROJECT_NAME="${COMPOSE_PROJECT_NAME:-hybrid-retrieval-and-ranking-engine}"
 
 if [ -z "$URL" ]; then
   if [ "$MODE" = "docker" ]; then
@@ -32,8 +33,7 @@ if [ "$MODE" = "docker" ] && [ "${INSIDE_DOCKER_BENCH:-0}" != "1" ]; then
 
   DOCKER_NETWORK="${DOCKER_NETWORK:-}"
   if [ -z "$DOCKER_NETWORK" ]; then
-    PROJECT_SLUG="$(basename "$REPO_ROOT" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]/-/g; s/--*/-/g; s/^-//; s/-$//')"
-    PREFERRED_NETWORK="${PROJECT_SLUG}_default"
+    PREFERRED_NETWORK="${COMPOSE_PROJECT_NAME}_default"
     if docker network ls --format '{{.Name}}' | grep -Fxq "$PREFERRED_NETWORK"; then
       DOCKER_NETWORK="$PREFERRED_NETWORK"
     else

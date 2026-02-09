@@ -20,6 +20,9 @@ postgres:
   user: hybrid
   password: hybrid123
 
+caching:
+  url: http://caching-service:8096
+
 query:
   cache:
     enabled: true

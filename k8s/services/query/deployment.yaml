@@ -27,6 +27,8 @@ spec:
               value: vector-service
             - name: VECTOR_GRPC_PORT
               value: "9094"
+            - name: CACHING_URL
+              value: http://caching-service:8096
           ports:
             - containerPort: 8083
           readinessProbe:

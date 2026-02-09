@@ -20,11 +20,21 @@ spring:
 server:
   port: 8082
 
+app:
+  kafka:
+    topic: ingestion-topic
+
 vector:
   ollama:
     base-url: http://ollama:11434
   embedding:
     model: embeddinggemma
+    fast-validation-mode: false
+    cache:
+      enabled: true
+      max-entries: 10000
 
 solr:
   url: http://solr:8983/solr/hybrid_collection
+  batch-size: 500
+  commit-interval-ms: 2000

@@ -12,7 +12,7 @@ spring:
   kafka:
     consumer:
       bootstrap-servers: kafka:9092
-      group-id: indexing-group
+      group-id: ${SPRING_KAFKA_CONSUMER_GROUP_ID:indexing-group}
       auto-offset-reset: earliest
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
@@ -20,11 +20,21 @@ spring:
 server:
   port: 8082
 
+app:
+  kafka:
+    topic: ${APP_KAFKA_TOPIC:ingestion-topic}
+
 vector:
   ollama:
     base-url: http://ollama:11434
   embedding:
     model: embeddinggemma
+    fast-validation-mode: false
+    cache:
+      enabled: true
+      max-entries: 10000
 
 solr:
   url: http://solr:8983/solr/hybrid_collection
+  batch-size: 500
+  commit-interval-ms: 2000

@@ -66,6 +66,7 @@ com/hybrid/vector/contract/VectorHit.class
 com/hybrid/query/service/LexicalSearchClient.class
 com/hybrid/vector/contract/VectorHit$Builder.class
 com/hybrid/vector/contract/VectorSearchResponse$Builder.class
+com/hybrid/query/service/RedisQueryCacheClient.class
 com/hybrid/query/grpc/HybridQueryServiceGrpc$HybridQueryServiceFileDescriptorSupplier.class
 com/hybrid/vector/contract/VectorHit$1.class
 com/hybrid/query/grpc/HybridQueryServiceGrpc$2.class

@@ -29,13 +29,14 @@ public class QueryService {
     private final MeterRegistry meterRegistry;
     private final QueryLogService queryLogService;
     private final HybridQueryCacheService queryCacheService;
+    private final RedisQueryCacheClient redisQueryCacheClient;
 
     public QueryService(
             LexicalSearchClient lexicalSearchClient,
             SemanticSearchClient semanticSearchClient,
             ObjectMapper objectMapper
     ) {
-        this(lexicalSearchClient, semanticSearchClient, objectMapper, null, null, null);
+        this(lexicalSearchClient, semanticSearchClient, objectMapper, null, null, null, null);
     }
 
     public QueryService(
@@ -44,7 +45,7 @@ public class QueryService {
             ObjectMapper objectMapper,
             MeterRegistry meterRegistry
     ) {
-        this(lexicalSearchClient, semanticSearchClient, objectMapper, meterRegistry, null, null);
+        this(lexicalSearchClient, semanticSearchClient, objectMapper, meterRegistry, null, null, null);
     }
 
     @Autowired
@@ -54,7 +55,8 @@ public class QueryService {
             ObjectMapper objectMapper,
             MeterRegistry meterRegistry,
             QueryLogService queryLogService,
-            HybridQueryCacheService queryCacheService
+            HybridQueryCacheService queryCacheService,
+            RedisQueryCacheClient redisQueryCacheClient
     ) {
         this.lexicalSearchClient = lexicalSearchClient;
         this.semanticSearchClient = semanticSearchClient;
@@ -62,19 +64,28 @@ public class QueryService {
         this.meterRegistry = meterRegistry;
         this.queryLogService = queryLogService;
         this.queryCacheService = queryCacheService;
+        this.redisQueryCacheClient = redisQueryCacheClient;
     }
 
     public QueryResult executeHybridSearch(QueryRequest request) {
         long totalStart = System.nanoTime();
         String query = request == null ? null : request.getQuery();
         int topK = resolveTopK(request);
-        QueryResult cached = queryCacheService == null ? null : queryCacheService.get(query, topK);
+        QueryResult cached = redisQueryCacheClient == null ? null : redisQueryCacheClient.get(query, topK);
         if (cached != null) {
-            incrementCounter("query_result_cache_hit_total");
-            recordQueryLog(query, topK, totalStart, "CACHE_HIT");
+            incrementCounter("query_result_redis_cache_hit_total");
+            recordQueryLog(query, topK, totalStart, "CACHE_HIT_REDIS");
             return copyResult(cached);
         }
-        incrementCounter("query_result_cache_miss_total");
+        incrementCounter("query_result_redis_cache_miss_total");
+
+        cached = queryCacheService == null ? null : queryCacheService.get(query, topK);
+        if (cached != null) {
+            incrementCounter("query_result_inmemory_cache_hit_total");
+            recordQueryLog(query, topK, totalStart, "CACHE_HIT_INMEMORY");
+            return copyResult(cached);
+        }
+        incrementCounter("query_result_inmemory_cache_miss_total");
 
         String solrResponse = timedSearch(
                 "solr_query_latency_ms",
@@ -100,6 +111,9 @@ public class QueryService {
         result.setSolrResult(solrResponse);
         result.setVectorResult(vectorResponse);
         result.setRankedResults(ranked);
+        if (redisQueryCacheClient != null) {
+            redisQueryCacheClient.put(query, topK, copyResult(result));
+        }
         if (queryCacheService != null) {
             queryCacheService.put(query, topK, copyResult(result));
         }
