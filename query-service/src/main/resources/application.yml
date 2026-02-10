@@ -7,8 +7,9 @@ solr:
 
 vector:
   url: http://vector-service:8084
-  request-timeout-ms: 60
+  request-timeout-ms: 4000
   grpc:
+    timeout-ms: 4000
     enabled: false
     host: vector-service
     port: 9094
@@ -25,8 +26,8 @@ caching:
 
 query:
   execution:
-    total-budget-ms: 120
-    vector-stage-budget-ms: 40
+    total-budget-ms: 200
+    vector-stage-budget-ms: 120
   cache:
     enabled: true
     ttl-seconds: 120

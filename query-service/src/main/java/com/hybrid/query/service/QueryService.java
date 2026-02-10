@@ -14,9 +14,11 @@ import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -35,6 +37,15 @@ public class QueryService {
     private static final long DEFAULT_TOTAL_BUDGET_MS = 120L;
     private static final long DEFAULT_VECTOR_STAGE_BUDGET_MS = 40L;
     private static final long MIN_STAGE_BUDGET_MS = 25L;
+    private static final String MODE_HYBRID = "hybrid";
+    private static final String MODE_LEXICAL = "lexical";
+    private static final String MODE_SEMANTIC = "semantic";
+    private static final String FILTER_NONE = "none";
+    private static final String FILTER_SOLR = "solr";
+    private static final String FILTER_VECTOR = "vector";
+    private static final String DEFAULT_QUERY_MODE = MODE_HYBRID;
+    private static final String EMPTY_SOLR_RESPONSE = "{\"response\":{\"docs\":[]}}";
+    private static final String EMPTY_VECTOR_RESPONSE = "[]";
 
     private final LexicalSearchClient lexicalSearchClient;
     private final SemanticSearchClient semanticSearchClient;
@@ -45,6 +56,7 @@ public class QueryService {
     private final RedisQueryCacheClient redisQueryCacheClient;
     private final long totalBudgetMs;
     private final long vectorStageBudgetMs;
+    private final long lexicalStageBudgetMs;
     private final ConcurrentHashMap<String, Object> inFlightLocks = new ConcurrentHashMap<>();
 
     public QueryService(
@@ -123,8 +135,10 @@ public class QueryService {
         this.queryLogService = queryLogService;
         this.queryCacheService = queryCacheService;
         this.redisQueryCacheClient = redisQueryCacheClient;
-        this.totalBudgetMs = Math.max(100L, totalBudgetMs);
-        this.vectorStageBudgetMs = Math.max(25L, vectorStageBudgetMs);
+        BudgetConfig config = computeBudgetConfig(totalBudgetMs, vectorStageBudgetMs);
+        this.totalBudgetMs = config.totalBudgetMs();
+        this.vectorStageBudgetMs = config.vectorBudgetMs();
+        this.lexicalStageBudgetMs = config.lexicalBudgetMs();
     }
 
     public QueryResult executeHybridSearch(QueryRequest request) {
@@ -137,9 +151,12 @@ public class QueryService {
         long totalStart = System.nanoTime();
         String query = request == null ? null : request.getQuery();
         int topK = resolveTopK(request);
+        QueryMode resolvedMode = resolveMode(request == null ? null : request.getMode());
+        ResultFilter resolvedFilter = resolveFilter(request == null ? null : request.getFilter());
         log.info("trace_id={} event=query_start query=\"{}\" top_k={}", effectiveTraceId, sanitizeForLog(query), topK);
 
-        QueryResult cached = redisQueryCacheClient == null ? null : redisQueryCacheClient.get(query, topK);
+        QueryResult cached = redisQueryCacheClient == null ? null :
+                redisQueryCacheClient.get(query, topK, resolvedMode.label(), resolvedFilter.label());
         if (cached != null) {
             incrementCounter("query_result_redis_cache_hit_total");
             recordQueryLog(query, topK, totalStart, "CACHE_HIT_REDIS");
@@ -152,7 +169,8 @@ public class QueryService {
         }
         incrementCounter("query_result_redis_cache_miss_total");
 
-        cached = queryCacheService == null ? null : queryCacheService.get(query, topK);
+        cached = queryCacheService == null ? null :
+                queryCacheService.get(query, topK, resolvedMode.label(), resolvedFilter.label());
         if (cached != null) {
             incrementCounter("query_result_inmemory_cache_hit_total");
             recordQueryLog(query, topK, totalStart, "CACHE_HIT_INMEMORY");
@@ -165,11 +183,12 @@ public class QueryService {
         }
         incrementCounter("query_result_inmemory_cache_miss_total");
 
-        String lockKey = buildCacheKey(query, topK);
+        String lockKey = buildCacheKey(query, topK, resolvedMode, resolvedFilter);
         Object lock = inFlightLocks.computeIfAbsent(lockKey, ignored -> new Object());
         try {
             synchronized (lock) {
-                cached = redisQueryCacheClient == null ? null : redisQueryCacheClient.get(query, topK);
+                cached = redisQueryCacheClient == null ? null :
+                        redisQueryCacheClient.get(query, topK, resolvedMode.label(), resolvedFilter.label());
                 if (cached != null) {
                     incrementCounter("query_result_redis_cache_hit_total");
                     recordQueryLog(query, topK, totalStart, "CACHE_HIT_REDIS");
@@ -181,7 +200,8 @@ public class QueryService {
                     return copyResult(cached);
                 }
 
-                cached = queryCacheService == null ? null : queryCacheService.get(query, topK);
+                cached = queryCacheService == null ? null :
+                        queryCacheService.get(query, topK, resolvedMode.label(), resolvedFilter.label());
                 if (cached != null) {
                     incrementCounter("query_result_inmemory_cache_hit_total");
                     recordQueryLog(query, topK, totalStart, "CACHE_HIT_INMEMORY");
@@ -193,20 +213,27 @@ public class QueryService {
                     return copyResult(cached);
                 }
 
-                return executeAndCache(query, topK, totalStart, effectiveTraceId);
+                return executeAndCache(query, topK, totalStart, effectiveTraceId, resolvedMode, resolvedFilter);
             }
         } finally {
             inFlightLocks.remove(lockKey, lock);
         }
     }
 
-    private QueryResult executeAndCache(String query, int topK, long totalStart, String effectiveTraceId) {
+    private QueryResult executeAndCache(
+            String query,
+            int topK,
+            long totalStart,
+            String effectiveTraceId,
+            QueryMode mode,
+            ResultFilter filter
+    ) {
 
         TimedSearchResult solrTimed = timedSearch(
                 "solr_query_latency_ms",
                 () -> lexicalSearchClient.search(query),
-                "{\"response\":{\"docs\":[]}}",
-                totalBudgetMs
+                EMPTY_SOLR_RESPONSE,
+                lexicalStageBudgetMs
         );
         String solrResponse = solrTimed.payload();
         log.info(
@@ -240,7 +267,7 @@ public class QueryService {
         );
 
         long mergeStart = System.nanoTime();
-        List<RankedResult> ranked = mergeAndRank(lexicalSignals, semanticSignals, topK);
+        List<RankedResult> ranked = mergeAndRank(lexicalSignals, semanticSignals, topK, mode, filter);
         recordTimer("ranking_merge_duration_ms", mergeStart);
         double mergeDurationMs = elapsedMillis(mergeStart);
         log.info(
@@ -252,15 +279,20 @@ public class QueryService {
         incrementCounter("hybrid_query_count_total");
 
         QueryResult result = new QueryResult();
-        result.setMessage("Hybrid result from Solr + Vector search");
+        result.setMessage(String.format("Hybrid result from Solr + Vector search [mode=%s filter=%s]", mode.label(), filter.label()));
         result.setSolrResult(solrResponse);
         result.setVectorResult(vectorResponse);
+        if (filter == ResultFilter.SOLR_ONLY) {
+            result.setVectorResult(EMPTY_VECTOR_RESPONSE);
+        } else if (filter == ResultFilter.VECTOR_ONLY) {
+            result.setSolrResult(EMPTY_SOLR_RESPONSE);
+        }
         result.setRankedResults(ranked);
         if (redisQueryCacheClient != null) {
-            redisQueryCacheClient.put(query, topK, copyResult(result));
+            redisQueryCacheClient.put(query, topK, mode.label(), filter.label(), copyResult(result));
         }
         if (queryCacheService != null) {
-            queryCacheService.put(query, topK, copyResult(result));
+            queryCacheService.put(query, topK, mode.label(), filter.label(), copyResult(result));
         }
         String executionStatus = executionStatus(query, solrTimed.outcome(), vectorTimed.outcome());
         log.info(
@@ -274,8 +306,11 @@ public class QueryService {
         return result;
     }
 
-    private String buildCacheKey(String query, int topK) {
-        return (query == null ? "" : query) + "::" + topK;
+    private String buildCacheKey(String query, int topK, QueryMode mode, ResultFilter filter) {
+        return (query == null ? "" : query)
+                + "::" + topK
+                + "::" + mode.label()
+                + "::" + filter.label();
     }
 
     public String fetchFacets(String field, Integer limit) {
@@ -345,7 +380,7 @@ public class QueryService {
         return timedSearch(
                 "vector_query_latency_ms",
                 () -> semanticSearchClient.search(query, topK),
-                "[]",
+                EMPTY_VECTOR_RESPONSE,
                 stageTimeoutMs
         );
     }
@@ -436,19 +471,27 @@ public class QueryService {
         return docs;
     }
 
-    private List<RankedResult> mergeAndRank(List<DocSignal> lexical, List<DocSignal> semantic, int topK) {
+    private List<RankedResult> mergeAndRank(
+            List<DocSignal> lexical,
+            List<DocSignal> semantic,
+            int topK,
+            QueryMode mode,
+            ResultFilter filter
+    ) {
         Map<String, MergedSignal> merged = new HashMap<>();
 
-        double maxLexical = lexical.stream().mapToDouble(DocSignal::score).max().orElse(1.0);
-        double maxSemantic = semantic.stream().mapToDouble(DocSignal::score).max().orElse(1.0);
+        List<DocSignal> lexicalStage = filter == ResultFilter.VECTOR_ONLY ? Collections.emptyList() : lexical;
+        List<DocSignal> semanticStage = filter == ResultFilter.SOLR_ONLY ? Collections.emptyList() : semantic;
+        double maxLexical = lexicalStage.stream().mapToDouble(DocSignal::score).max().orElse(1.0);
+        double maxSemantic = semanticStage.stream().mapToDouble(DocSignal::score).max().orElse(1.0);
 
-        for (DocSignal d : lexical) {
+        for (DocSignal d : lexicalStage) {
             MergedSignal m = merged.computeIfAbsent(d.id(), id -> new MergedSignal(id));
             m.title = chooseTitle(m.title, d.title());
             m.lexicalScore = normalize(d.score(), maxLexical);
         }
 
-        for (DocSignal d : semantic) {
+        for (DocSignal d : semanticStage) {
             MergedSignal m = merged.computeIfAbsent(d.id(), id -> new MergedSignal(id));
             m.title = chooseTitle(m.title, d.title());
             m.semanticScore = normalize(d.score(), maxSemantic);
@@ -457,14 +500,38 @@ public class QueryService {
         List<RankedResult> ranked = new ArrayList<>();
         for (MergedSignal m : merged.values()) {
             double fused = (LEXICAL_WEIGHT * m.lexicalScore) + (SEMANTIC_WEIGHT * m.semanticScore);
+            if (filter == ResultFilter.SOLR_ONLY) {
+                fused = m.lexicalScore;
+            } else if (filter == ResultFilter.VECTOR_ONLY) {
+                fused = m.semanticScore;
+            }
             ranked.add(new RankedResult(m.id, m.title, fused, m.lexicalScore, m.semanticScore));
         }
 
-        ranked.sort(Comparator.comparingDouble(RankedResult::getScore).reversed());
+        Comparator<RankedResult> comparator = comparatorForMode(mode);
+        boolean hasLexicalScore = ranked.stream().anyMatch(r -> r.getLexicalScore() > 0);
+        boolean hasSemanticScore = ranked.stream().anyMatch(r -> r.getSemanticScore() > 0);
+        if (mode == QueryMode.LEXICAL && !hasLexicalScore) {
+            comparator = Comparator.comparingDouble(RankedResult::getScore).reversed();
+        } else if (mode == QueryMode.SEMANTIC && !hasSemanticScore) {
+            comparator = Comparator.comparingDouble(RankedResult::getScore).reversed();
+        }
+        ranked.sort(comparator);
         if (ranked.size() <= topK) {
             return ranked;
         }
         return new ArrayList<>(ranked.subList(0, topK));
+    }
+
+    private Comparator<RankedResult> comparatorForMode(QueryMode mode) {
+        switch (mode) {
+            case LEXICAL:
+                return Comparator.comparingDouble(RankedResult::getLexicalScore).reversed();
+            case SEMANTIC:
+                return Comparator.comparingDouble(RankedResult::getSemanticScore).reversed();
+            default:
+                return Comparator.comparingDouble(RankedResult::getScore).reversed();
+        }
     }
 
     private static int resolveTopK(QueryRequest request) {
@@ -472,6 +539,34 @@ public class QueryService {
             return DEFAULT_TOP_K;
         }
         return request.getTopK();
+    }
+
+    private static QueryMode resolveMode(String mode) {
+        if (mode == null) {
+            return QueryMode.HYBRID;
+        }
+        switch (mode.trim().toLowerCase(Locale.ROOT)) {
+            case MODE_LEXICAL:
+                return QueryMode.LEXICAL;
+            case MODE_SEMANTIC:
+                return QueryMode.SEMANTIC;
+            default:
+                return QueryMode.HYBRID;
+        }
+    }
+
+    private static ResultFilter resolveFilter(String filter) {
+        if (filter == null) {
+            return ResultFilter.NONE;
+        }
+        switch (filter.trim().toLowerCase(Locale.ROOT)) {
+            case FILTER_SOLR:
+                return ResultFilter.SOLR_ONLY;
+            case FILTER_VECTOR:
+                return ResultFilter.VECTOR_ONLY;
+            default:
+                return ResultFilter.NONE;
+        }
     }
 
     private static double normalize(double value, double max) {
@@ -579,10 +674,39 @@ public class QueryService {
         return target;
     }
 
+    private enum QueryMode {
+        HYBRID,
+        LEXICAL,
+        SEMANTIC;
+
+        public String label() {
+            return name().toLowerCase(Locale.ROOT);
+        }
+    }
+
+    private enum ResultFilter {
+        NONE("none"),
+        SOLR_ONLY("solr"),
+        VECTOR_ONLY("vector");
+
+        private final String label;
+
+        ResultFilter(String label) {
+            this.label = label;
+        }
+
+        public String label() {
+            return label;
+        }
+    }
+
     private record DocSignal(String id, String title, double score) {
     }
 
     private record TimedSearchResult(String payload, double durationMs, String outcome) {
+    }
+
+    private record BudgetConfig(long totalBudgetMs, long vectorBudgetMs, long lexicalBudgetMs) {
     }
 
     private static class MergedSignal {
@@ -594,6 +718,16 @@ public class QueryService {
         private MergedSignal(String id) {
             this.id = id;
         }
+    }
+
+    private static BudgetConfig computeBudgetConfig(long requestedTotal, long requestedVector) {
+        long total = Math.max(100L, requestedTotal);
+        long vectorBudget = Math.max(MIN_STAGE_BUDGET_MS, Math.min(requestedVector, total - MIN_STAGE_BUDGET_MS));
+        long lexicalBudget = Math.max(MIN_STAGE_BUDGET_MS, total - vectorBudget);
+        if (vectorBudget + lexicalBudget > total) {
+            lexicalBudget = Math.max(MIN_STAGE_BUDGET_MS, total - vectorBudget);
+        }
+        return new BudgetConfig(total, vectorBudget, lexicalBudget);
     }
 
     @FunctionalInterface

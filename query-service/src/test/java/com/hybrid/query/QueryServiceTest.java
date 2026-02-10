@@ -3,6 +3,7 @@ package com.hybrid.query;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.hybrid.query.model.QueryRequest;
 import com.hybrid.query.model.QueryResult;
+import com.hybrid.query.model.RankedResult;
 import com.hybrid.query.service.QueryService;
 import com.hybrid.query.service.SolrLexicalSearchClient;
 import com.hybrid.query.service.VectorSemanticSearchClient;
@@ -168,5 +169,101 @@ class QueryServiceTests {
         assertThat(result.getVectorResult()).isEqualTo("[]");
         assertThat(result.getRankedResults()).hasSize(1);
         assertThat(result.getRankedResults().get(0).getId()).isEqualTo("doc-500");
+    }
+
+    @Test
+    void testLexicalModeBiasesRankingOrder() {
+        SolrLexicalSearchClient solrClient = new SolrLexicalSearchClient("http://localhost:8983") {
+            @Override
+            public String search(String query) {
+                return "{\"response\":{\"docs\":[{\"id\":\"doc-lex\",\"title\":\"Lexical\",\"score\":0.5},{\"id\":\"doc-shared\",\"title\":\"Shared\",\"score\":0.4}]}}";
+            }
+        };
+
+        VectorSemanticSearchClient vectorClient = new VectorSemanticSearchClient("http://localhost:8084") {
+            @Override
+            public String search(String query, Integer topK) {
+                return "[{\"documentId\":\"doc-shared\",\"title\":\"Shared\",\"similarityScore\":0.95}]";
+            }
+        };
+
+        QueryService queryService = new QueryService(solrClient, vectorClient, new ObjectMapper());
+
+        QueryRequest req = new QueryRequest();
+        req.setQuery("lexical mode");
+        req.setMode("lexical");
+
+        QueryResult result = queryService.executeHybridSearch(req);
+
+        assertThat(result).isNotNull();
+        assertThat(result.getRankedResults()).hasSize(2);
+        assertThat(result.getRankedResults().get(0).getId()).isEqualTo("doc-lex");
+        assertThat(result.getMessage()).contains("mode=lexical");
+    }
+
+    @Test
+    void testFilterSolrOnlyDropsVectorResults() {
+        SolrLexicalSearchClient solrClient = new SolrLexicalSearchClient("http://localhost:8983") {
+            @Override
+            public String search(String query) {
+                return "{\"response\":{\"docs\":[{\"id\":\"doc-lex\",\"title\":\"Lexical\",\"score\":2.0}]}}";
+            }
+        };
+
+        VectorSemanticSearchClient vectorClient = new VectorSemanticSearchClient("http://localhost:8084") {
+            @Override
+            public String search(String query, Integer topK) {
+                return "[{\"documentId\":\"doc-vector\",\"title\":\"Vector\",\"similarityScore\":0.95}]";
+            }
+        };
+
+        QueryService queryService = new QueryService(solrClient, vectorClient, new ObjectMapper());
+
+        QueryRequest req = new QueryRequest();
+        req.setQuery("solr filter");
+        req.setFilter("solr");
+
+        QueryResult result = queryService.executeHybridSearch(req);
+
+        assertThat(result).isNotNull();
+        assertThat(result.getRankedResults()).hasSize(1);
+        RankedResult top = result.getRankedResults().get(0);
+        assertThat(top.getId()).isEqualTo("doc-lex");
+        assertThat(top.getSemanticScore()).isEqualTo(0.0);
+        assertThat(result.getMessage()).contains("filter=solr");
+        assertThat(result.getVectorResult()).isEqualTo("[]");
+    }
+
+    @Test
+    void testFilterVectorOnlyHidesSolrPayload() {
+        SolrLexicalSearchClient solrClient = new SolrLexicalSearchClient("http://localhost:8983") {
+            @Override
+            public String search(String query) {
+                return "{\"response\":{\"docs\":[{\"id\":\"doc-lex\",\"title\":\"Lexical\",\"score\":2.0}]}}";
+            }
+        };
+
+        VectorSemanticSearchClient vectorClient = new VectorSemanticSearchClient("http://localhost:8084") {
+            @Override
+            public String search(String query, Integer topK) {
+                return "[{\"documentId\":\"doc-vector\",\"title\":\"Vector\",\"similarityScore\":0.95}]";
+            }
+        };
+
+        QueryService queryService = new QueryService(solrClient, vectorClient, new ObjectMapper());
+
+        QueryRequest req = new QueryRequest();
+        req.setQuery("vector filter");
+        req.setFilter("vector");
+
+        QueryResult result = queryService.executeHybridSearch(req);
+
+        assertThat(result).isNotNull();
+        assertThat(result.getRankedResults()).hasSize(1);
+        RankedResult top = result.getRankedResults().get(0);
+        assertThat(top.getId()).isEqualTo("doc-vector");
+        assertThat(top.getLexicalScore()).isEqualTo(0.0);
+        assertThat(result.getMessage()).contains("filter=vector");
+        assertThat(result.getSolrResult()).isEqualTo("{\"response\":{\"docs\":[]}}");
     }
 }

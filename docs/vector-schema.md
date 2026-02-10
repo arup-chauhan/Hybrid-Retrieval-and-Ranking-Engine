@@ -16,7 +16,7 @@ This document describes the PostgreSQL schema expected by `vector-service` for s
 - `updated_at` `TIMESTAMPTZ` default `NOW()`
 
 Index:
-- `ivfflat` index on `embedding` with `vector_cosine_ops`
+- `hnsw` index on `embedding` with `vector_cosine_ops` (use `WITH (m=16, ef_construction=200)` for fast ANN)
 
 ### `query_logs`
 

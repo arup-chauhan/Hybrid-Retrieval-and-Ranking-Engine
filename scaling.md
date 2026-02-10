@@ -340,7 +340,26 @@ For each step add:
 - Conclusion:
   - with explicit QPS shaping (`12 QPS`), current system meets README SLO (`p95 < 200ms`, error `< 1%`).
 
-## 2026-02-09 - Step 18: Reproducible paced benchmark commands and CI smoke gate
+## 2026-02-10 - Step 18: HNSW + hybrid budget tuning
+
+- Goal:
+  - get pgvector to use the new HNSW graph, then stretch the query budget/timeouts so the warmed Ollama embedding + ANN lookup fits inside the hybrid latency envelope.
+- Changes made:
+  - Rebuilt `idx_vector_metadata_embedding_hnsw` with `vector_cosine_ops`, ran `ANALYZE vector_metadata`, and confirmed the plan now uses the HNSW index (60 ms `Index Scan`).
+  - Raised the query budgets/timeouts: `QUERY_EXECUTION_TOTAL_BUDGET_MS=3000`, `QUERY_EXECUTION_VECTOR_STAGE_BUDGET_MS=2500`, `vector.request-timeout-ms=4000`, `vector.grpc.timeout-ms=4000`.
+  - Flushed Redis/proxy caches and warmed Ollama so semantic queries finish within ~717 ms and no longer hit the gRPC deadline; the vector REST endpoint stabilizes to ~210 ms after the first embed load (~5 s tail).
+- Commands run:
+  - `docker-compose -p hybrid-retrieval-and-ranking-engine exec -T postgres psql ... DROP/CREATE INDEX ... USING hnsw (embedding vector_cosine_ops) ...`
+  - `docker-compose -p hybrid-retrieval-and-ranking-engine exec -T postgres psql ... ANALYZE vector_metadata`
+  - `docker run --rm --network hybrid-retrieval-and-ranking-engine_default curlimages/curl sh -c 'time curl -s ... vector/search?...'` (warm-up measurement and 0.21 s steady-state)
+  - `docker run --rm --network hybrid-retrieval-and-ranking-engine_default curlimages/curl -X POST ... query service ...` (vector stage success, 5 semantic docs)
+  - `docker-compose -p hybrid-retrieval-and-ranking-engine logs --tail 20 query-service` (verify vector_search outcome=SUCCESS duration=717 ms, semantic_docs=5)
+- Result:
+  - The vector stage now uses the HNSW index and the warmed Ollama runner so gRPC completes inside 4 s, semantic scores are no longer zero, and `penalty shootout warm-up` now returns five semantic hits.
+- Next action:
+  - Keep monitoring `vector_query_latency_ms`/`query_stage_timeout_total` and use the same script once per major restart to warm the model before running SLO benchmarks.
+
+## 2026-02-09 - Step 19: Reproducible paced benchmark commands and CI smoke gate
 
 - Goal:
   - make SLO validation one-command reproducible and CI-friendly.
@@ -366,7 +385,7 @@ For each step add:
   - added direct commands for `make benchmark-slo` and `make benchmark-smoke-ci`.
   - documented default smoke profile values.
 
-## 2026-02-09 - Step 19: Fix validator indexing convergence stall
+## 2026-02-09 - Step 20: Fix validator indexing convergence stall
 
 - Goal:
   - stop validator runs from stalling at `solr=0/...` while vector metadata grows.
@@ -385,7 +404,7 @@ For each step add:
 - Next action:
   - rerun `make validate-500k-paced-smoke` and confirm Solr/vector convergence completes.
 
-## 2026-02-09 - Step 20: Validator convergence and SolrCloud bootstrap hardening
+## 2026-02-09 - Step 21: Validator convergence and SolrCloud bootstrap hardening
 
 - Goal:
   - make paced validator smoke complete reliably in mixed local Docker environments.
@@ -434,3 +453,19 @@ For each step add:
   - warm: `p95 186.319ms` (PASS)
 - Current blocker:
   - Docker Desktop became unstable during follow-up reruns (`input/output error` and `Docker Desktop is unable to start`), preventing final verification of the prewarm-enabled run.
+## 2026-02-09 - Step 22: FIFA 5K semantic smoke + benchmark report
+
+- Goal: confirm FIFA-focused custom corpus can be ingested and surfaced via the hybrid query path, while documenting the smoke run artifacts.
+- Change made:
+  - reran `./scripting/run_5k_doc_engine.sh` with docker socket permissions so the validator could refresh every service, pull `cp-kafka:7.6.1`, and execute `validate-500k-e2e.sh` with `TARGET_DOCS=5000`.
+  - when host-side access to `localhost:18081`/`18083` remained blocked, used in-network containers (`python:3.11` loader + `curlimages/curl`) to contact ingestion/query services via their internal hostnames.
+- Commands run:
+  - `./scripting/run_5k_doc_engine.sh`
+  - `docker run --rm --network hybrid-retrieval-and-ranking-engine_default python:3.11 ... ./scripting/load-ingestion-file.sh` (FIFA dataset loader fallback)
+  - `docker run --rm --network hybrid-retrieval-and-ranking-engine_default curlimages/curl -s -X POST http://query-service:8083/search -H 'Content-Type: application/json' -d '{"query":"Who won the World Cup in 1994?","topK":5}'`
+- Result:
+  - ingestion completed with `total_requests=5000 success_requests=5000`, Solr reached `476,233` docs, `vector_metadata` hit `461,148`, and both cold/warm benchmarks (paced via `RATE_QPS=8`) passed with p95=48.5 ms and 115.8 ms plus zero errors; report located at `docs/benchmarks/500k-2026-02-09-154427/report.md`.
+  - embeddings for the FIFA docs now exist, so semantic signals can be observed once the vector stage runs (increase `query.execution.vector-stage-budget-ms` if the stage keeps skipping).
+  - host `localhost:<port>` access continues to be blocked in this environment, so use Compose-network probes or the frontend proxy (`http://localhost:3001/api/search`) for manual verification until the sandbox allows loopback traffic.
+- Next action:
+  - expose the frontend proxy and share the curated semantic queries for browser testing; once semantic hits appear record their outputs in this log and in `Walkthroughs/WEB_SCRAPE_TO_INGEST_WORKFLOW.md`.

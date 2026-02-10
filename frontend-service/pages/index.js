@@ -1,6 +1,11 @@
 import { useMemo, useState } from "react";
 
 const MODE_OPTIONS = ["hybrid", "lexical", "semantic"];
+const FILTER_OPTIONS = [
+  { value: "none", label: "No filter" },
+  { value: "solr", label: "Solr only" },
+  { value: "vector", label: "Vector only" },
+];
 
 export default function Home() {
   const [query, setQuery] = useState("wireless headphones");
@@ -9,6 +14,7 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [result, setResult] = useState(null);
+  const [filter, setFilter] = useState("none");
 
   const viewResults = useMemo(() => {
     if (!result) return [];
@@ -42,7 +48,7 @@ export default function Home() {
           "Content-Type": "application/json",
           "X-Trace-Id": `frontend-${Date.now()}`
         },
-        body: JSON.stringify({ query, topK })
+      body: JSON.stringify({ query, topK, mode, filter })
       });
 
       if (!response.ok) {
@@ -98,6 +104,17 @@ export default function Home() {
             </select>
           </label>
 
+          <label>
+            Filter
+            <select value={filter} onChange={(e) => setFilter(e.target.value)}>
+              {FILTER_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
+
           <button type="submit" disabled={loading}>
             {loading ? "Searching..." : "Search"}
           </button>
@@ -106,7 +123,7 @@ export default function Home() {
         <div className="meta">
           <span>API: /api/search (frontend proxy)</span>
           <span>
-            Note: mode toggles result ordering by score type in UI (hybrid/lexical/semantic).
+            Note: mode biases ranking, filter selects Solr-only or Vector-only hits.
           </span>
         </div>
 

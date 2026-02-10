@@ -260,6 +260,7 @@ To keep hybrid search within latency SLO, the query path uses timeout guards and
 - Query-service sets strict downstream timeouts for Solr and vector calls:
   - `solr.request-timeout-ms`
   - `vector.request-timeout-ms`
+  - `vector.grpc.timeout-ms`
 - Vector-service caches embeddings to avoid repeated Ollama calls for hot queries:
   - `vector.embedding-cache.enabled`
   - `vector.embedding-cache.ttl-seconds`
@@ -268,6 +269,19 @@ To keep hybrid search within latency SLO, the query path uses timeout guards and
   - `query.cache.enabled`
   - `query.cache.ttl-seconds`
   - `query.cache.max-entries`
+
+- Ollama requires a warm-up call after the vector container starts so the embeddings model loads before benchmarks. Run this inside the compose network before hitting `/search`:
+
+  ```bash
+  docker run --rm --network hybrid-retrieval-and-ranking-engine_default \
+    curlimages/curl -s -o /dev/null -w "%{time_total}\n" \
+    "http://vector-service:8084/api/vector/search?query=warm+up&topK=1"
+  ```
+
+  The call completes in a few seconds on a cold start, and after that the semantic stage responds in ~0.2‑0.7 s; repeat the warm-up only after Ollama/vector rebuilds or restarts.
+
+- The runtime budgets currently allocate `query.execution.total-budget-ms=3000` with a `vector-stage-budget-ms=2500`, giving the lexical stage ~500 ms while the vector stage can run near 2.5 s before the hybrid guard kicks in.
+- Vector timeouts are now `vector.request-timeout-ms=4000` and `vector.grpc.timeout-ms=4000` so both REST and gRPC have the same 4 s window to call the warmed Ollama + HNSW pipeline.
 
 This design prioritizes fast, stable responses under load and degrades gracefully if semantic retrieval is slow.
 
@@ -331,8 +345,14 @@ Quick walkthrough:
 
 Frontend UI:
 
-- URL: `http://localhost:3001`
-- Env override for frontend proxy upstream: `QUERY_API_BASE`
+- URL: `http://localhost:3001` (single-page UI with lexical / semantic / hybrid mode).
+- Env override for frontend proxy upstream: `QUERY_API_BASE` (defaults to `http://query-service:8083`).
+- The Next.js server exposes `/api/search` as a same-origin proxy so browsers call `localhost:3001` and the proxy routes into the Compose network (no direct host port access required).
+- Sample FIFA queries for verification:
+  - `recommendations for immersive multiplayer racing experiences`
+  - `Who won the World Cup in 1994?`
+  - `Brazil penalty shootout final 1994`
+  Toggle the mode dropdown (hybrid/lexical/semantic) to see how each signal contributes to the score.
 - Optional component: backend services and curl-based search workflows run unchanged without `frontend-service`.
 
 Stop local stack:

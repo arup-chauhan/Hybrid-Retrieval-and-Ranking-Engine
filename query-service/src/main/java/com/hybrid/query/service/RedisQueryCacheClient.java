@@ -31,7 +31,7 @@ public class RedisQueryCacheClient {
         this.ttlSeconds = Math.max(1L, ttlSeconds);
     }
 
-    public QueryResult get(String query, int topK) {
+    public QueryResult get(String query, int topK, String mode, String filter) {
         if (!enabled) {
             return null;
         }
@@ -39,7 +39,7 @@ public class RedisQueryCacheClient {
             String response = webClient.get()
                     .uri(uriBuilder -> uriBuilder
                             .path("/cache/get")
-                            .queryParam("key", buildKey(query, topK))
+                            .queryParam("key", buildKey(query, topK, mode, filter))
                             .build())
                     .retrieve()
                     .bodyToMono(String.class)
@@ -61,7 +61,7 @@ public class RedisQueryCacheClient {
         }
     }
 
-    public void put(String query, int topK, QueryResult result) {
+    public void put(String query, int topK, String mode, String filter, QueryResult result) {
         if (!enabled || result == null) {
             return;
         }
@@ -69,7 +69,7 @@ public class RedisQueryCacheClient {
             webClient.post()
                     .uri(uriBuilder -> uriBuilder
                             .path("/cache/put")
-                            .queryParam("key", buildKey(query, topK))
+                            .queryParam("key", buildKey(query, topK, mode, filter))
                             .queryParam("ttl", ttlSeconds)
                             .build())
                     .bodyValue(result)
@@ -80,10 +80,17 @@ public class RedisQueryCacheClient {
         }
     }
 
-    private static String buildKey(String query, int topK) {
+    private static String buildKey(String query, int topK, String mode, String filter) {
         String q = Optional.ofNullable(query).orElse("");
         String encoded = Base64.getUrlEncoder().withoutPadding()
                 .encodeToString(q.getBytes(StandardCharsets.UTF_8));
-        return "hybrid:query:" + encoded + ":topk:" + topK;
+        return "hybrid:query:" + encoded
+                + ":topk:" + topK
+                + ":mode:" + normalize(mode)
+                + ":filter:" + normalize(filter);
+    }
+
+    private static String normalize(String value) {
+        return value == null ? "" : value;
     }
 }

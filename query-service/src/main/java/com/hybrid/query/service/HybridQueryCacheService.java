@@ -24,33 +24,36 @@ public class HybridQueryCacheService {
         this.maxEntries = Math.max(100, maxEntries);
     }
 
-    public QueryResult get(String query, int topK) {
+    public QueryResult get(String query, int topK, String mode, String filter) {
         if (!enabled) {
             return null;
         }
-        CacheEntry entry = cache.get(key(query, topK));
+        CacheEntry entry = cache.get(key(query, topK, mode, filter));
         if (entry == null) {
             return null;
         }
         if (entry.expiresAtMillis <= System.currentTimeMillis()) {
-            cache.remove(key(query, topK));
+            cache.remove(key(query, topK, mode, filter));
             return null;
         }
         return entry.value;
     }
 
-    public void put(String query, int topK, QueryResult result) {
+    public void put(String query, int topK, String mode, String filter, QueryResult result) {
         if (!enabled || result == null) {
             return;
         }
         if (cache.size() >= maxEntries) {
             cache.clear();
         }
-        cache.put(key(query, topK), new CacheEntry(result, System.currentTimeMillis() + ttlMillis));
+        cache.put(key(query, topK, mode, filter), new CacheEntry(result, System.currentTimeMillis() + ttlMillis));
     }
 
-    private static String key(String query, int topK) {
-        return (query == null ? "" : query) + "::" + topK;
+    private static String key(String query, int topK, String mode, String filter) {
+        return (query == null ? "" : query)
+                + "::" + topK
+                + "::" + mode
+                + "::" + filter;
     }
 
     private record CacheEntry(QueryResult value, long expiresAtMillis) {

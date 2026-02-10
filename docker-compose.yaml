@@ -84,9 +84,11 @@ services:
       - "${QUERY_HOST_PORT:-8083}:8083"
       - "${QUERY_GRPC_HOST_PORT:-9093}:9093"
     environment:
-      VECTOR_GRPC_ENABLED: "true"
+      VECTOR_GRPC_ENABLED: "false"
       VECTOR_GRPC_HOST: vector-service
       VECTOR_GRPC_PORT: 9094
+      QUERY_EXECUTION_TOTAL_BUDGET_MS: 3000
+      QUERY_EXECUTION_VECTOR_STAGE_BUDGET_MS: 2500
       CACHING_URL: http://caching-service:8096
       QUERY_WARMUP_ENABLED: "true"
       QUERY_WARMUP_QUERY: wireless headphones

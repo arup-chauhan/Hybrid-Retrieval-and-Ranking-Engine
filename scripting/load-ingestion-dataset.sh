@@ -10,6 +10,7 @@ CONNECT_TIMEOUT_SEC="${CONNECT_TIMEOUT_SEC:-5}"
 MAX_TIME_SEC="${MAX_TIME_SEC:-20}"
 OUT_DIR="${OUT_DIR:-/tmp/hybrid-load}"
 CONTENT_VARIANTS="${CONTENT_VARIANTS:-256}"
+CONTENT_TEMPLATE="${CONTENT_TEMPLATE:-Hybrid retrieval sample variant %s. Category electronics. Feature-rich text for lexical and semantic indexing.}"
 COMPOSE_PROJECT_NAME="${COMPOSE_PROJECT_NAME:-hybrid-retrieval-and-ranking-engine}"
 
 if [ -z "$INGEST_URL" ]; then
@@ -96,7 +97,7 @@ generate_ids | xargs -I{} -P "$CONCURRENCY" sh -c '
 id="$1"
 variant=$((id % CONTENT_VARIANTS))
 title="Doc $id"
-content="Hybrid retrieval sample variant $variant. Category electronics. Feature-rich text for lexical and semantic indexing."
+  content=$(printf "$CONTENT_TEMPLATE" "$variant")
 metadata="category=electronics;source=synthetic;variant=$variant"
 payload=$(printf "{\"id\":\"doc-%s\",\"title\":\"%s\",\"content\":\"%s\",\"metadata\":\"%s\"}" "$id" "$title" "$content" "$metadata")
 code=$(curl -sS -o /dev/null -w "%{http_code}" \

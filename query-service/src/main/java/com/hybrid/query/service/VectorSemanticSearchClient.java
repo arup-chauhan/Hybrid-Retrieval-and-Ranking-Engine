@@ -1,5 +1,6 @@
 package com.hybrid.query.service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.hybrid.vector.contract.VectorHit;
 import com.hybrid.vector.contract.VectorSearchRequest;
@@ -31,9 +32,10 @@ public class VectorSemanticSearchClient implements SemanticSearchClient, Disposa
     private final VectorSearchServiceGrpc.VectorSearchServiceBlockingStub vectorSearchStub;
     private final ObjectMapper objectMapper;
     private final long requestTimeoutMs;
+    private final long grpcDeadlineMs;
 
     public VectorSemanticSearchClient(String vectorUrl) {
-        this(vectorUrl, false, "vector-service", 9094, 120L, new ObjectMapper());
+        this(vectorUrl, false, "vector-service", 9094, 120L, 600L, new ObjectMapper());
     }
 
     @Autowired
@@ -43,12 +45,14 @@ public class VectorSemanticSearchClient implements SemanticSearchClient, Disposa
             @Value("${vector.grpc.host:vector-service}") String grpcHost,
             @Value("${vector.grpc.port:9094}") int grpcPort,
             @Value("${vector.request-timeout-ms:120}") long requestTimeoutMs,
+            @Value("${vector.grpc.timeout-ms:${vector.request-timeout-ms:120}}") long grpcDeadlineMs,
             ObjectMapper objectMapper
     ) {
         this.webClient = WebClient.builder().baseUrl(vectorUrl).build();
         this.grpcEnabled = grpcEnabled;
         this.objectMapper = objectMapper;
         this.requestTimeoutMs = Math.max(50L, requestTimeoutMs);
+        this.grpcDeadlineMs = Math.max(50L, grpcDeadlineMs);
         if (grpcEnabled) {
             this.grpcChannel = ManagedChannelBuilder.forAddress(grpcHost, grpcPort).usePlaintext().build();
             this.vectorSearchStub = VectorSearchServiceGrpc.newBlockingStub(grpcChannel);
@@ -61,8 +65,16 @@ public class VectorSemanticSearchClient implements SemanticSearchClient, Disposa
     @Override
     public String search(String query, Integer topK) {
         if (grpcEnabled && vectorSearchStub != null) {
-            return grpcSearch(query, topK);
+            try {
+                return grpcSearch(query, topK);
+            } catch (Exception ex) {
+                log.warn("gRPC vector search failed, falling back to REST", ex);
+            }
         }
+        return restSearch(query, topK);
+    }
+
+    private String restSearch(String query, Integer topK) {
         try {
             return webClient.get()
                     .uri(uriBuilder -> uriBuilder
@@ -74,33 +86,29 @@ public class VectorSemanticSearchClient implements SemanticSearchClient, Disposa
                     .bodyToMono(String.class)
                     .block(Duration.ofMillis(requestTimeoutMs));
         } catch (Exception ex) {
+            log.warn("REST vector search failed, returning empty set", ex);
             return "[]";
         }
     }
 
-    private String grpcSearch(String query, Integer topK) {
-        try {
-            VectorSearchRequest request = VectorSearchRequest.newBuilder()
-                    .setQuery(query == null ? "" : query)
-                    .setTopK(topK == null ? 0 : topK)
-                    .build();
+    private String grpcSearch(String query, Integer topK) throws JsonProcessingException {
+        VectorSearchRequest request = VectorSearchRequest.newBuilder()
+                .setQuery(query == null ? "" : query)
+                .setTopK(topK == null ? 0 : topK)
+                .build();
 
-            VectorSearchResponse response = vectorSearchStub
-                    .withDeadlineAfter(requestTimeoutMs, TimeUnit.MILLISECONDS)
-                    .search(request);
-            List<Map<String, Object>> hits = new ArrayList<>();
-            for (VectorHit hit : response.getHitsList()) {
-                hits.add(Map.of(
-                        "documentId", hit.getDocumentId(),
-                        "similarityScore", hit.getSimilarityScore(),
-                        "title", hit.getTitle()
-                ));
-            }
-            return objectMapper.writeValueAsString(hits);
-        } catch (Exception ex) {
-            log.warn("gRPC vector search failed, falling back to empty result set", ex);
-            return "[]";
+        VectorSearchResponse response = vectorSearchStub
+                .withDeadlineAfter(grpcDeadlineMs, TimeUnit.MILLISECONDS)
+                .search(request);
+        List<Map<String, Object>> hits = new ArrayList<>();
+        for (VectorHit hit : response.getHitsList()) {
+            hits.add(Map.of(
+                    "documentId", hit.getDocumentId(),
+                    "similarityScore", hit.getSimilarityScore(),
+                    "title", hit.getTitle()
+            ));
         }
+        return objectMapper.writeValueAsString(hits);
     }
 
     @Override
