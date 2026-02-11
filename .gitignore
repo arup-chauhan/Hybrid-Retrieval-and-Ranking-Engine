@@ -15,5 +15,8 @@ docs/benchmarks/500k-*/
 airflow/logs/*
 !airflow/logs/.gitkeep
 
+*.env
+.env.local
+
 airflow/dags/__pycache__/
 *.pyc
