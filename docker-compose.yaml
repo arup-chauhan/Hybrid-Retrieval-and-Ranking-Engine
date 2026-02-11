@@ -185,7 +185,7 @@ services:
       AIRFLOW__CORE__EXECUTOR: LocalExecutor
       AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@airflow-db:5432/airflow
       AIRFLOW__CORE__LOAD_EXAMPLES: "false"
-      AIRFLOW__CORE__FERNET_KEY: 7P3hUDRjvYhh47rb7afGSEfBH6hEwMwqRtVtTQKQ-Q8=
+      AIRFLOW__CORE__FERNET_KEY: JSqfZXrzx3hAaB90IPVshNEVkgwOaXooLoP1m4HGqa0=
     volumes:
       - ./airflow/dags:/opt/airflow/dags
       - ./airflow/logs:/opt/airflow/logs
@@ -206,7 +206,7 @@ services:
       AIRFLOW__CORE__EXECUTOR: LocalExecutor
       AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@airflow-db:5432/airflow
       AIRFLOW__CORE__LOAD_EXAMPLES: "false"
-      AIRFLOW__CORE__FERNET_KEY: 7P3hUDRjvYhh47rb7afGSEfBH6hEwMwqRtVtTQKQ-Q8=
+      AIRFLOW__CORE__FERNET_KEY: JSqfZXrzx3hAaB90IPVshNEVkgwOaXooLoP1m4HGqa0=
     volumes:
       - ./airflow/dags:/opt/airflow/dags
       - ./airflow/logs:/opt/airflow/logs
@@ -227,7 +227,7 @@ services:
       AIRFLOW__CORE__EXECUTOR: LocalExecutor
       AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@airflow-db:5432/airflow
       AIRFLOW__CORE__LOAD_EXAMPLES: "false"
-      AIRFLOW__CORE__FERNET_KEY: 7P3hUDRjvYhh47rb7afGSEfBH6hEwMwqRtVtTQKQ-Q8=
+      AIRFLOW__CORE__FERNET_KEY: JSqfZXrzx3hAaB90IPVshNEVkgwOaXooLoP1m4HGqa0=
     volumes:
       - ./airflow/dags:/opt/airflow/dags
       - ./airflow/logs:/opt/airflow/logs
